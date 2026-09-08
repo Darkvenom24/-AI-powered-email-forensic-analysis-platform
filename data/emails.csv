@@ -1,0 +1,16 @@
+text,label
+"Hello, your meeting is scheduled for tomorrow at 10 AM.",safe
+"Your Amazon order has been shipped successfully.",safe
+"Please find attached the project report for review.",safe
+"Your monthly electricity bill is ready.",safe
+"Thank you for contacting our support team.",safe
+"Congratulations! You have won a free prize. Click here now!",spam
+"Get 90% discount on our premium products today.",spam
+"Limited time offer! Buy now and save money.",spam
+"You have been selected for an exclusive reward.",spam
+"Earn money from home with this amazing opportunity.",spam
+"URGENT! Your bank account has been suspended. Click here to verify.",phishing
+"Your password will expire today. Login immediately to keep your account.",phishing
+"Verify your account now or your account will be permanently deleted.",phishing
+"Your bank security requires you to confirm your credentials.",phishing
+"Click this link and enter your username and password to unlock your account.",phishing

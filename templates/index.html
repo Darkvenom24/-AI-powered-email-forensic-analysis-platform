@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Email Threat Detector</title>
+
+    <!-- CUSTOM CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- LEAFLET CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- LEAFLET JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ================================================== -->
+    <!-- HEADER -->
+    <!-- ================================================== -->
+
+    <header class="header">
+        <h1>🛡️ AI Email Threat Detector</h1>
+        <p class="subtitle">
+            AI Email Threat Detection + Geolocation + Forensics
+        </p>
+    </header>
+
+
+    <!-- ================================================== -->
+    <!-- EMAIL INPUT -->
+    <!-- ================================================== -->
+
+    <section class="input-section">
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <h2>📧 Analyze Email</h2>
+
+            <div class="input-group">
+
+                <label>Upload .EML File</label>
+
+                <input
+                    type="file"
+                    name="email_file"
+                    accept=".eml"
+                >
+
+            </div>
+
+
+            <div class="or-divider">
+                OR
+            </div>
+
+
+            <div class="input-group">
+
+                <label>Paste Email Content</label>
+
+                <textarea
+                    name="email_text"
+                    placeholder="Paste email content here..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="analyze-button"
+            >
+                🔍 ANALYZE EMAIL
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- ERROR -->
+    <!-- ================================================== -->
+
+    {% if error %}
+
+    <div class="error">
+
+        <strong>⚠️ Error:</strong>
+
+        {{ error }}
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ================================================== -->
+    <!-- ANALYSIS RESULT -->
+    <!-- ================================================== -->
+
+    {% if result %}
+
+    <div class="result">
+
+        <!-- ================================================== -->
+        <!-- RESULT HEADER -->
+        <!-- ================================================== -->
+
+        <div class="section-header">
+
+            <h2>
+                📊 Analysis Result
+            </h2>
+
+            <p>
+                AI-powered email security analysis
+            </p>
+
+        </div>
+
+
+        <!-- ================================================== -->
+        <!-- RESULT CARDS -->
+        <!-- ================================================== -->
+
+        <div class="cards">
+
+            <!-- THREAT LEVEL -->
+
+            <div class="card">
+
+                <h3>
+                    Threat Level
+                </h3>
+
+                <p class="threat-badge">
+                    {{ result.threat }}
+                </p>
+
+            </div>
+
+
+            <!-- ML PREDICTION -->
+
+            <div class="card">
+
+                <h3>
+                    ML Prediction
+                </h3>
+
+                <p>
+                    {{ result.prediction }}
+                </p>
+
+            </div>
+
+
+            <!-- CONFIDENCE -->
+
+            <div class="card">
+
+                <h3>
+                    Confidence
+                </h3>
+
+                <p>
+                    {{ result.confidence }}%
+                </p>
+
+            </div>
+
+
+            <!-- RISK SCORE -->
+
+            <div class="card risk-card">
+
+                <h3>
+                    Risk Score
+                </h3>
+
+                <div
+                    class="risk-gauge"
+                    style="--risk: {{ result.risk_score }}%;"
+                >
+
+                    <div class="risk-gauge-inner">
+
+                        <span class="risk-number">
+                            {{ result.risk_score }}
+                        </span>
+
+                        <span class="risk-label">
+                            / 100
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                {% if result.risk_score >= 70 %}
+
+                <p class="risk-status high">
+                    🔴 HIGH RISK
+                </p>
+
+                {% elif result.risk_score >= 40 %}
+
+                <p class="risk-status medium">
+                    🟠 MEDIUM RISK
+                </p>
+
+                {% else %}
+
+                <p class="risk-status low">
+                    🟢 LOW RISK
+                </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ================================================== -->
+        <!-- WHY IS THIS EMAIL RISKY -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section risk-reasons-section">
+
+            <div class="section-header">
+
+                <h2>
+                    🧠 Why Is This Email Risky?
+                </h2>
+
+                <p>
+                    Evidence and signals detected by the AI analysis engine.
+                </p>
+
+            </div>
+
+
+            {% if result.risk_reasons %}
+
+            <div class="risk-reasons-list">
+
+                {% for reason in result.risk_reasons %}
+
+                <div class="risk-reason">
+
+                    <span class="reason-icon">
+                        ⚠
+                    </span>
+
+                    <span>
+                        {{ reason }}
+                    </span>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="empty-message">
+
+                ✅ No specific risk indicators detected.
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- EMAIL FORENSICS -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                🔎 Email Forensics
+            </h2>
+
+            <div class="forensics">
+
+                <div class="forensic-row">
+
+                    <strong>From:</strong>
+
+                    <span>
+                        {{ result.forensics.from }}
+                    </span>
+
+                </div>
+
+
+                <div class="forensic-row">
+
+                    <strong>Reply-To:</strong>
+
+                    <span>
+                        {{ result.forensics.reply_to }}
+                    </span>
+
+                </div>
+
+
+                <div class="forensic-row">
+
+                    <strong>Return-Path:</strong>
+
+                    <span>
+                        {{ result.forensics.return_path }}
+                    </span>
+
+                </div>
+
+
+                <div class="forensic-row">
+
+                    <strong>Subject:</strong>
+
+                    <span>
+                        {{ result.forensics.subject }}
+                    </span>
+
+                </div>
+
+
+                <div class="forensic-row">
+
+                    <strong>Message-ID:</strong>
+
+                    <span>
+                        {{ result.forensics.message_id }}
+                    </span>
+
+                </div>
+
+
+                <hr>
+
+
+               <div class="authentication-grid">
+
+    <!-- SPF -->
+    <div class="auth-card">
+
+        <div class="auth-title">
+            🛡️ SPF
+        </div>
+
+        {% if result.forensics.spf|lower == "pass" %}
+
+        <div class="auth-status auth-pass">
+            🟢 PASS
+        </div>
+
+        <p>
+            Sender IP is authorized by the domain.
+        </p>
+
+        {% elif result.forensics.spf|lower == "fail" %}
+
+        <div class="auth-status auth-fail">
+            🔴 FAIL
+        </div>
+
+        <p>
+            Sender authentication failed.
+        </p>
+
+        {% else %}
+
+        <div class="auth-status auth-unknown">
+            ⚪ NOT FOUND
+        </div>
+
+        <p>
+            SPF authentication result was not found.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- DKIM -->
+    <div class="auth-card">
+
+        <div class="auth-title">
+            🔐 DKIM
+        </div>
+
+        {% if result.forensics.dkim|lower == "pass" %}
+
+        <div class="auth-status auth-pass">
+            🟢 PASS
+        </div>
+
+        <p>
+            Email signature verification passed.
+        </p>
+
+        {% elif result.forensics.dkim|lower == "fail" %}
+
+        <div class="auth-status auth-fail">
+            🔴 FAIL
+        </div>
+
+        <p>
+            Email signature verification failed.
+        </p>
+
+        {% else %}
+
+        <div class="auth-status auth-unknown">
+            ⚪ NOT FOUND
+        </div>
+
+        <p>
+            DKIM authentication result was not found.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- DMARC -->
+    <div class="auth-card">
+
+        <div class="auth-title">
+            📋 DMARC
+        </div>
+
+        {% if result.forensics.dmarc|lower == "pass" %}
+
+        <div class="auth-status auth-pass">
+            🟢 PASS
+        </div>
+
+        <p>
+            Domain alignment and authentication passed.
+        </p>
+
+        {% elif result.forensics.dmarc|lower == "fail" %}
+
+        <div class="auth-status auth-fail">
+            🔴 FAIL
+        </div>
+
+        <p>
+            Domain authentication or alignment failed.
+        </p>
+
+        {% else %}
+
+        <div class="auth-status auth-unknown">
+            ⚪ NOT FOUND
+        </div>
+
+        <p>
+            DMARC authentication result was not found.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- FORENSIC INDICATORS -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                ⚠️ Forensic Indicators
+            </h2>
+
+            <div class="indicator-box">
+
+                {% if result.forensics.indicators %}
+
+                <ul>
+
+                    {% for indicator in result.forensics.indicators %}
+
+                    <li>
+                        {{ indicator }}
+                    </li>
+
+                    {% endfor %}
+
+                </ul>
+
+                {% else %}
+
+                <p>
+                    ✅ No major forensic indicators detected.
+                </p>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- URL ANALYSIS -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                🔗 URL Analysis
+            </h2>
+
+
+            {% if result.urls %}
+
+            {% for url in result.urls %}
+
+            <div class="url-box">
+
+                <div class="url-row">
+
+                    <strong>URL:</strong>
+
+                    <span>
+                        {{ url.url }}
+                    </span>
+
+                </div>
+
+
+                <div class="url-row">
+
+                    <strong>Domain:</strong>
+
+                    <span>
+                        {{ url.domain }}
+                    </span>
+
+                </div>
+
+
+                <div class="url-row">
+
+                    <strong>Risk Score:</strong>
+
+                    <span>
+                        {{ url.risk_score }}
+                    </span>
+
+                </div>
+
+
+                <div class="url-row">
+
+                    <strong>Suspicious:</strong>
+
+                    <span>
+                        {{ url.suspicious }}
+                    </span>
+
+                </div>
+
+
+                {% if url.indicators %}
+
+                <div class="url-indicators">
+
+                    <strong>
+                        Indicators:
+                    </strong>
+
+                    <ul>
+
+                        {% for indicator in url.indicators %}
+
+                        <li>
+                            {{ indicator }}
+                        </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+            {% else %}
+
+            <div class="empty-message">
+                No URLs detected.
+            </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- IP ANALYSIS -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                🌐 IP Analysis
+            </h2>
+
+
+            {% if result.ips %}
+
+            <div class="ip-list">
+
+                {% for ip in result.ips %}
+
+                <div class="ip-box">
+
+                    <strong>
+                        IP Address:
+                    </strong>
+
+                    <span>
+                        {{ ip }}
+                    </span>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="empty-message">
+                No IP addresses detected.
+            </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- IP GEOLOCATION -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                🌍 IP Geolocation
+            </h2>
+
+
+            {% if result.ip_results %}
+
+            {% for ip in result.ip_results %}
+
+            <div class="geo-box">
+
+                <div class="geo-row">
+
+                    <strong>IP:</strong>
+
+                    <span>
+                        {{ ip.ip }}
+                    </span>
+
+                </div>
+
+
+                <div class="geo-row">
+
+                    <strong>Type:</strong>
+
+                    <span>
+                        {{ ip.type }}
+                    </span>
+
+                </div>
+
+
+                <div class="geo-row">
+
+                    <strong>Country:</strong>
+
+                    <span>
+                        {{ ip.country }}
+                    </span>
+
+                </div>
+
+
+                <div class="geo-row">
+
+                    <strong>City:</strong>
+
+                    <span>
+                        {{ ip.city }}
+                    </span>
+
+                </div>
+
+
+                <div class="geo-row">
+
+                    <strong>Region:</strong>
+
+                    <span>
+                        {{ ip.region }}
+                    </span>
+
+                </div>
+
+
+                <div class="geo-row">
+
+                    <strong>Organization:</strong>
+
+                    <span>
+                        {{ ip.organization }}
+                    </span>
+
+                </div>
+
+
+                {% if ip.latitude is defined
+                      and ip.longitude is defined
+                      and ip.latitude is not none
+                      and ip.longitude is not none %}
+
+                <div class="geo-row">
+
+                    <strong>
+                        Coordinates:
+                    </strong>
+
+                    <span>
+                        {{ ip.latitude }},
+                        {{ ip.longitude }}
+                    </span>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+            {% else %}
+
+            <div class="empty-message">
+
+                No IP addresses found in email headers.
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- GEOLOCATION MAP -->
+        <!-- ================================================== -->
+
+        <section class="analysis-section">
+
+            <h2>
+                🗺️ Geolocation Map
+            </h2>
+
+            <div id="map"></div>
+
+
+            <script>
+
+                document.addEventListener(
+                    "DOMContentLoaded",
+                    function () {
+
+                        const defaultLatitude = 20.5937;
+
+                        const defaultLongitude = 78.9629;
+
+
+                        const map = L.map(
+                            "map"
+                        ).setView(
+                            [
+                                defaultLatitude,
+                                defaultLongitude
+                            ],
+                            4
+                        );
+
+
+                        L.tileLayer(
+                            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            {
+                                maxZoom: 19,
+                                attribution:
+                                    "&copy; OpenStreetMap contributors"
+                            }
+                        ).addTo(map);
+
+
+                        const ipLocations = [];
+
+
+                        {% for ip in result.ip_results %}
+
+                            {% if ip.latitude is defined
+                                  and ip.longitude is defined
+                                  and ip.latitude is not none
+                                  and ip.longitude is not none %}
+
+                            ipLocations.push({
+
+                                ip:
+                                    "{{ ip.ip | default('Unknown') }}",
+
+                                latitude:
+                                    {{ ip.latitude }},
+
+                                longitude:
+                                    {{ ip.longitude }},
+
+                                country:
+                                    "{{ ip.country | default('Unknown') }}",
+
+                                city:
+                                    "{{ ip.city | default('Unknown') }}",
+
+                                organization:
+                                    "{{ ip.organization | default('Unknown') }}"
+
+                            });
+
+                            {% endif %}
+
+                        {% endfor %}
+
+
+                        console.log(
+                            "IP Locations:",
+                            ipLocations
+                        );
+
+
+                        ipLocations.forEach(
+                            function (location) {
+
+                                const marker =
+                                    L.marker(
+                                        [
+                                            location.latitude,
+                                            location.longitude
+                                        ]
+                                    ).addTo(map);
+
+
+                                marker.bindPopup(
+
+                                    "<b>🌐 IP:</b> " +
+                                    location.ip +
+
+                                    "<br><b>🌍 Country:</b> " +
+                                    location.country +
+
+                                    "<br><b>🏙️ City:</b> " +
+                                    location.city +
+
+                                    "<br><b>🏢 Organization:</b> " +
+                                    location.organization
+
+                                );
+
+                            }
+                        );
+
+
+                        if (
+                            ipLocations.length > 0
+                        ) {
+
+                            const bounds = [];
+
+
+                            ipLocations.forEach(
+                                function (location) {
+
+                                    bounds.push(
+                                        [
+                                            location.latitude,
+                                            location.longitude
+                                        ]
+                                    );
+
+                                }
+                            );
+
+
+                            map.fitBounds(
+                                bounds,
+                                {
+                                    padding:
+                                        [
+                                            30,
+                                            30
+                                        ]
+                                }
+                            );
+
+                        }
+
+
+                        if (
+                            ipLocations.length === 0
+                        ) {
+
+                            L.popup()
+
+                                .setLatLng(
+                                    [
+                                        defaultLatitude,
+                                        defaultLongitude
+                                    ]
+                                )
+
+                                .setContent(
+
+                                    "<b>⚠️ No public IP location available</b>" +
+                                    "<br>" +
+                                    "No geolocation coordinates were found."
+
+                                )
+
+                                .openOn(map);
+
+                        }
+
+                    }
+                );
+
+            </script>
+
+        </section>
+
+
+        <!-- ================================================== -->
+        <!-- PDF FORENSIC REPORT -->
+        <!-- ================================================== -->
+
+        <section class="pdf-section">
+
+            <div class="pdf-content">
+
+                <h2>
+                    📄 Forensic Report
+                </h2>
+
+                <p>
+                    Generate a complete forensic analysis report
+                    containing ML detection, URL analysis,
+                    IP geolocation, email headers and
+                    threat indicators.
+                </p>
+
+
+                <a
+                    href="{{ url_for('generate_report') }}"
+                    class="pdf-button"
+                >
+                    📄 Generate PDF Report
+                </a>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ================================================== -->
+<!-- FOOTER -->
+<!-- ================================================== -->
+
+<footer class="footer">
+
+    <p>
+        🛡️ AI Email Threat Detector
+    </p>
+
+    <p>
+        AI Email Threat Detection + Geolocation + Forensics
+    </p>
+
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+From: security@example.com
+Reply-To: attacker@example.net
+Return-Path: <security@example.com>
+Message-ID: <test123@example.com>
+Subject: Urgent Account Verification
+Authentication-Results: example.com; spf=fail; dkim=fail; dmarc=fail
+Received: from suspicious-server (8.8.8.8)
+    by mail.example.com
+Content-Type: text/plain
+
+URGENT! Your bank account has been suspended.
+
+Please verify your password immediately.
+
+Click here:
+https://example.com/login/verify

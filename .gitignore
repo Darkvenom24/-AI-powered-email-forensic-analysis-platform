@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# Large raw dataset
+data/Balanced_Dataset.csv
+
+# Raw SpamAssassin archives
+data/*.tar.bz2
+
+# Extracted SpamAssassin emails
+data/spam/
+data/easy_ham/
+
+# Generated reports
+reports/*.pdf
