@@ -1,288 +1,589 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Email Threat Detector</title>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Email Threat Detector</title>
 
-    <!-- CUSTOM CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        <!-- CUSTOM CSS -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <!-- LEAFLET CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <!-- LEAFLET CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-    <!-- LEAFLET JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-</head>
+        <!-- LEAFLET JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    </head>
 
-<body>
+    <body>
 
-<div class="container">
+        <div class="container">
 
-    <!-- ================================================== -->
-    <!-- HEADER -->
-    <!-- ================================================== -->
+            <!-- ================================================== -->
+            <!-- HEADER -->
+            <!-- ================================================== -->
 
-    <header class="header">
-        <h1>🛡️ AI Email Threat Detector</h1>
-        <p class="subtitle">
-            AI Email Threat Detection + Geolocation + Forensics
-        </p>
-    </header>
-
-
-    <!-- ================================================== -->
-    <!-- EMAIL INPUT -->
-    <!-- ================================================== -->
-
-    <section class="input-section">
-
-        <form method="POST" enctype="multipart/form-data">
-
-            <h2>📧 Analyze Email</h2>
-
-            <div class="input-group">
-
-                <label>Upload .EML File</label>
-
-                <input
-                    type="file"
-                    name="email_file"
-                    accept=".eml"
-                >
-
-            </div>
-
-
-            <div class="or-divider">
-                OR
-            </div>
-
-
-            <div class="input-group">
-
-                <label>Paste Email Content</label>
-
-                <textarea
-                    name="email_text"
-                    placeholder="Paste email content here..."
-                ></textarea>
-
-            </div>
-
-
-            <button
-                type="submit"
-                class="analyze-button"
-            >
-                🔍 ANALYZE EMAIL
-            </button>
-
-        </form>
-
-    </section>
-
-
-    <!-- ================================================== -->
-    <!-- ERROR -->
-    <!-- ================================================== -->
-
-    {% if error %}
-
-    <div class="error">
-
-        <strong>⚠️ Error:</strong>
-
-        {{ error }}
-
-    </div>
-
-    {% endif %}
-
-
-    <!-- ================================================== -->
-    <!-- ANALYSIS RESULT -->
-    <!-- ================================================== -->
-
-    {% if result %}
-
-    <div class="result">
-
-        <!-- ================================================== -->
-        <!-- RESULT HEADER -->
-        <!-- ================================================== -->
-
-        <div class="section-header">
-
-            <h2>
-                📊 Analysis Result
-            </h2>
-
-            <p>
-                AI-powered email security analysis
-            </p>
-
-        </div>
-
-
-        <!-- ================================================== -->
-        <!-- RESULT CARDS -->
-        <!-- ================================================== -->
-
-        <div class="cards">
-
-            <!-- THREAT LEVEL -->
-
-            <div class="card">
-
-                <h3>
-                    Threat Level
-                </h3>
-
-                <p class="threat-badge">
-                    {{ result.threat }}
+            <header class="header">
+                <h1>🛡️ AI Email Threat Detector</h1>
+                <p class="subtitle">
+                    AI Email Threat Detection + Geolocation + Forensics
                 </p>
+            </header>
 
-            </div>
+            <!-- ================================================== -->
+            <!-- EMAIL INPUT -->
+            <!-- ================================================== -->
 
+            <section class="input-section">
 
-            <!-- ML PREDICTION -->
+                <form method="POST" enctype="multipart/form-data">
 
-            <div class="card">
+                    <h2>📧 Analyze Email</h2>
 
-                <h3>
-                    ML Prediction
-                </h3>
+                    <div class="input-group">
 
-                <p>
-                    {{ result.prediction }}
-                </p>
+                        <label>Upload .EML File</label>
 
-            </div>
-
-
-            <!-- CONFIDENCE -->
-
-            <div class="card">
-
-                <h3>
-                    Confidence
-                </h3>
-
-                <p>
-                    {{ result.confidence }}%
-                </p>
-
-            </div>
-
-
-            <!-- RISK SCORE -->
-
-            <div class="card risk-card">
-
-                <h3>
-                    Risk Score
-                </h3>
-
-                <div
-                    class="risk-gauge"
-                    style="--risk: {{ result.risk_score }}%;"
-                >
-
-                    <div class="risk-gauge-inner">
-
-                        <span class="risk-number">
-                            {{ result.risk_score }}
-                        </span>
-
-                        <span class="risk-label">
-                            / 100
-                        </span>
+                        <input
+                        type="file"
+                        name="email_file"
+                        accept=".eml"
+                        >
 
                     </div>
 
+                    <div class="or-divider">
+                        OR
+                    </div>
+
+                    <div class="input-group">
+
+                        <label>Paste Email Content</label>
+
+                        <textarea
+                        name="email_text"
+                        placeholder="Paste email content here..."
+                        ></textarea>
+
+                    </div>
+
+                    <button
+                    type="submit"
+                    class="analyze-button"
+                    >
+                    🔍 ANALYZE EMAIL
+                    </button>
+
+                </form>
+
+            </section>
+
+            <!-- ================================================== -->
+            <!-- ERROR -->
+            <!-- ================================================== -->
+
+            {% if error %}
+
+                <div class="error">
+
+                    <strong>⚠️ Error:</strong>
+
+                    {{ error }}
+
                 </div>
 
+            {% endif %}
 
-                {% if result.risk_score >= 70 %}
+            <!-- ================================================== -->
+            <!-- ANALYSIS RESULT -->
+            <!-- ================================================== -->
 
-                <p class="risk-status high">
-                    🔴 HIGH RISK
-                </p>
+            {% if result %}
 
-                {% elif result.risk_score >= 40 %}
+                <div class="result">
 
-                <p class="risk-status medium">
-                    🟠 MEDIUM RISK
-                </p>
+                    <!-- ================================================== -->
+                    <!-- RESULT HEADER -->
+                    <!-- ================================================== -->
+
+                    <div class="section-header">
+
+                        <h2>
+                            📊 Analysis Result
+                        </h2>
+
+                        <p>
+                            AI-powered email security analysis
+                        </p>
+
+                    </div>
+
+                    <!-- ================================================== -->
+                    <!-- RESULT CARDS -->
+                    <!-- ================================================== -->
+
+                    <div class="cards">
+
+                        <!-- THREAT LEVEL -->
+
+                        <div class="card">
+
+                            <h3>
+                                Threat Level
+                            </h3>
+
+                            <p class="threat-badge">
+                                {{ result.threat }}
+                            </p>
+
+                        </div>
+
+                        <!-- ML PREDICTION -->
+
+                        <div class="card">
+
+                            <h3>
+                                ML Prediction
+                            </h3>
+
+                            <p>
+                                {{ result.prediction }}
+                            </p>
+
+                        </div>
+
+                        <!-- CONFIDENCE -->
+
+                        <div class="card">
+
+                            <h3>
+                                Confidence
+                            </h3>
+
+                            <p>
+                                {{ result.confidence }}%
+                            </p>
+
+                        </div>
+
+                        <!-- RISK SCORE -->
+
+                        <div class="card risk-card">
+
+                            <h3>
+                                Risk Score
+                            </h3>
+
+                            <div
+                            class="risk-gauge"
+                            style="--risk: {{ result.risk_score }}%;"
+                            >
+
+                            <div class="risk-gauge-inner">
+
+                                <span class="risk-number">
+                                    {{ result.risk_score }}
+                                </span>
+
+                                <span class="risk-label">
+                                    / 100
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        {% if result.risk_score >= 70 %}
+
+                            <p class="risk-status high">
+                                🔴 HIGH RISK
+                            </p>
+
+                            {% elif result.risk_score >= 40 %}
+
+                            <p class="risk-status medium">
+                                🟠 MEDIUM RISK
+                            </p>
+
+                        {% else %}
+
+                        <p class="risk-status low">
+                            🟢 LOW RISK
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- ================================================== -->
+            <!-- WHY IS THIS EMAIL RISKY -->
+            <!-- ================================================== -->
+
+            <section class="analysis-section risk-reasons-section">
+
+                <div class="section-header">
+
+                    <h2>
+                        🧠 Why Is This Email Risky?
+                    </h2>
+
+                    <p>
+                        Evidence and signals detected by the AI analysis engine.
+                    </p>
+
+                </div>
+
+                {% if result.risk_reasons %}
+
+                    <div class="risk-reasons-list">
+
+                        {% for reason in result.risk_reasons %}
+
+                            <div class="risk-reason">
+
+                                <span class="reason-icon">
+                                    ⚠
+                                </span>
+
+                                <span>
+                                    {{ reason }}
+                                </span>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
 
                 {% else %}
 
-                <p class="risk-status low">
-                    🟢 LOW RISK
-                </p>
+                <div class="empty-message">
 
-                {% endif %}
-
-            </div>
-
-        </div>
-
-
-        <!-- ================================================== -->
-        <!-- WHY IS THIS EMAIL RISKY -->
-        <!-- ================================================== -->
-
-        <section class="analysis-section risk-reasons-section">
-
-            <div class="section-header">
-
-                <h2>
-                    🧠 Why Is This Email Risky?
-                </h2>
-
-                <p>
-                    Evidence and signals detected by the AI analysis engine.
-                </p>
-
-            </div>
-
-
-            {% if result.risk_reasons %}
-
-            <div class="risk-reasons-list">
-
-                {% for reason in result.risk_reasons %}
-
-                <div class="risk-reason">
-
-                    <span class="reason-icon">
-                        ⚠
-                    </span>
-
-                    <span>
-                        {{ reason }}
-                    </span>
+                    ✅ No specific risk indicators detected.
 
                 </div>
-
-                {% endfor %}
-
-            </div>
-
-            {% else %}
-
-            <div class="empty-message">
-
-                ✅ No specific risk indicators detected.
-
-            </div>
 
             {% endif %}
 
         </section>
 
+        <!-- ================================================== -->
+        <!-- ML MODEL PERFORMANCE -->
+        <!-- ================================================== -->
 
+        <section class="analysis-section ml-performance-section">
+
+            <div class="section-header">
+
+                <h2>
+                    🤖 ML Model Performance
+                </h2>
+
+                <p>
+                    Performance of the AI email threat detection model
+                    on the evaluation dataset.
+                </p>
+
+            </div>
+
+            <!-- OVERALL ACCURACY -->
+
+            <div class="ml-accuracy-card">
+
+                <div class="accuracy-content">
+
+                    <span class="accuracy-title">
+                        Model Accuracy
+                    </span>
+
+                    <span class="accuracy-value">
+                        {{ model_metrics.accuracy }}%
+                    </span>
+
+                    <span class="accuracy-description">
+                        Overall classification accuracy
+                    </span>
+
+                </div>
+
+            </div>
+
+            <!-- CLASS PERFORMANCE -->
+
+            <div class="ml-class-grid">
+
+                <!-- SAFE -->
+
+                <div class="ml-class-card safe-model-card">
+
+                    <div class="ml-class-title">
+                        🟢 Safe
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Precision</span>
+
+                        <strong>
+                            {{ model_metrics.classes.safe.precision }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Recall</span>
+
+                        <strong>
+                            {{ model_metrics.classes.safe.recall }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>F1 Score</span>
+
+                        <strong>
+                            {{ model_metrics.classes.safe.f1_score }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Samples</span>
+
+                        <strong>
+                            {{ model_metrics.classes.safe.support }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <!-- SPAM -->
+
+                <div class="ml-class-card spam-model-card">
+
+                    <div class="ml-class-title">
+                        🟠 Spam
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Precision</span>
+
+                        <strong>
+                            {{ model_metrics.classes.spam.precision }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Recall</span>
+
+                        <strong>
+                            {{ model_metrics.classes.spam.recall }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>F1 Score</span>
+
+                        <strong>
+                            {{ model_metrics.classes.spam.f1_score }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Samples</span>
+
+                        <strong>
+                            {{ model_metrics.classes.spam.support }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <!-- PHISHING -->
+
+                <div class="ml-class-card phishing-model-card">
+
+                    <div class="ml-class-title">
+                        🔴 Phishing
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Precision</span>
+
+                        <strong>
+                            {{ model_metrics.classes.phishing.precision }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Recall</span>
+
+                        <strong>
+                            {{ model_metrics.classes.phishing.recall }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>F1 Score</span>
+
+                        <strong>
+                            {{ model_metrics.classes.phishing.f1_score }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="metric-row">
+
+                        <span>Samples</span>
+
+                        <strong>
+                            {{ model_metrics.classes.phishing.support }}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- CONFUSION MATRIX -->
+
+            <div class="confusion-section">
+
+                <h3>
+                    📊 Confusion Matrix
+                </h3>
+
+                <p class="matrix-description">
+                    Shows how the model classified Safe, Spam and
+                    Phishing emails during testing.
+                </p>
+
+                <div class="confusion-table-wrapper">
+
+                    <table class="confusion-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Actual / Predicted
+                                </th>
+
+                                <th>
+                                    Safe
+                                </th>
+
+                                <th>
+                                    Spam
+                                </th>
+
+                                <th>
+                                    Phishing
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <!-- SAFE -->
+
+                            <tr>
+
+                                <th>
+                                    Safe
+                                </th>
+
+                                <td class="matrix-good">
+                                    {{ model_metrics.confusion_matrix[0][0] }}
+                                </td>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[0][1] }}
+                                </td>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[0][2] }}
+                                </td>
+
+                            </tr>
+
+                            <!-- SPAM -->
+
+                            <tr>
+
+                                <th>
+                                    Spam
+                                </th>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[1][0] }}
+                                </td>
+
+                                <td class="matrix-good">
+                                    {{ model_metrics.confusion_matrix[1][1] }}
+                                </td>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[1][2] }}
+                                </td>
+
+                            </tr>
+
+                            <!-- PHISHING -->
+
+                            <tr>
+
+                                <th>
+                                    Phishing
+                                </th>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[2][0] }}
+                                </td>
+
+                                <td>
+                                    {{ model_metrics.confusion_matrix[2][1] }}
+                                </td>
+
+                                <td class="matrix-good">
+                                    {{ model_metrics.confusion_matrix[2][2] }}
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
         <!-- ================================================== -->
         <!-- EMAIL FORENSICS -->
         <!-- ================================================== -->
@@ -305,7 +606,6 @@
 
                 </div>
 
-
                 <div class="forensic-row">
 
                     <strong>Reply-To:</strong>
@@ -315,7 +615,6 @@
                     </span>
 
                 </div>
-
 
                 <div class="forensic-row">
 
@@ -327,7 +626,6 @@
 
                 </div>
 
-
                 <div class="forensic-row">
 
                     <strong>Subject:</strong>
@@ -337,7 +635,6 @@
                     </span>
 
                 </div>
-
 
                 <div class="forensic-row">
 
@@ -349,197 +646,190 @@
 
                 </div>
 
-
                 <hr>
 
+                <div class="authentication-grid">
 
-               <div class="authentication-grid">
+                    <!-- SPF -->
+                    <div class="auth-card">
 
-    <!-- SPF -->
-    <div class="auth-card">
+                        <div class="auth-title">
+                            🛡️ SPF
+                        </div>
 
-        <div class="auth-title">
-            🛡️ SPF
-        </div>
+                        {% if result.forensics.spf|lower == "pass" %}
 
-        {% if result.forensics.spf|lower == "pass" %}
+                            <div class="auth-status auth-pass">
+                                🟢 PASS
+                            </div>
 
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
+                            <p>
+                                Sender IP is authorized by the domain.
+                            </p>
 
-        <p>
-            Sender IP is authorized by the domain.
-        </p>
+                            {% elif result.forensics.spf|lower == "fail" %}
 
-        {% elif result.forensics.spf|lower == "fail" %}
+                            <div class="auth-status auth-fail">
+                                🔴 FAIL
+                            </div>
 
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
+                            <p>
+                                Sender authentication failed.
+                            </p>
 
-        <p>
-            Sender authentication failed.
-        </p>
+                        {% else %}
 
-        {% else %}
+                        <div class="auth-status auth-unknown">
+                            ⚪ NOT FOUND
+                        </div>
 
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
+                        <p>
+                            SPF authentication result was not found.
+                        </p>
 
-        <p>
-            SPF authentication result was not found.
-        </p>
+                    {% endif %}
 
-        {% endif %}
+                </div>
 
-    </div>
+                <!-- DKIM -->
+                <div class="auth-card">
 
+                    <div class="auth-title">
+                        🔐 DKIM
+                    </div>
 
-    <!-- DKIM -->
-    <div class="auth-card">
+                    {% if result.forensics.dkim|lower == "pass" %}
 
-        <div class="auth-title">
-            🔐 DKIM
-        </div>
+                        <div class="auth-status auth-pass">
+                            🟢 PASS
+                        </div>
 
-        {% if result.forensics.dkim|lower == "pass" %}
+                        <p>
+                            Email signature verification passed.
+                        </p>
 
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
+                        {% elif result.forensics.dkim|lower == "fail" %}
 
-        <p>
-            Email signature verification passed.
-        </p>
+                        <div class="auth-status auth-fail">
+                            🔴 FAIL
+                        </div>
 
-        {% elif result.forensics.dkim|lower == "fail" %}
+                        <p>
+                            Email signature verification failed.
+                        </p>
 
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
+                    {% else %}
 
-        <p>
-            Email signature verification failed.
-        </p>
+                    <div class="auth-status auth-unknown">
+                        ⚪ NOT FOUND
+                    </div>
 
-        {% else %}
-
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
-
-        <p>
-            DKIM authentication result was not found.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-
-    <!-- DMARC -->
-    <div class="auth-card">
-
-        <div class="auth-title">
-            📋 DMARC
-        </div>
-
-        {% if result.forensics.dmarc|lower == "pass" %}
-
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
-
-        <p>
-            Domain alignment and authentication passed.
-        </p>
-
-        {% elif result.forensics.dmarc|lower == "fail" %}
-
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
-
-        <p>
-            Domain authentication or alignment failed.
-        </p>
-
-        {% else %}
-
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
-
-        <p>
-            DMARC authentication result was not found.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-</div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================================== -->
-        <!-- FORENSIC INDICATORS -->
-        <!-- ================================================== -->
-
-        <section class="analysis-section">
-
-            <h2>
-                ⚠️ Forensic Indicators
-            </h2>
-
-            <div class="indicator-box">
-
-                {% if result.forensics.indicators %}
-
-                <ul>
-
-                    {% for indicator in result.forensics.indicators %}
-
-                    <li>
-                        {{ indicator }}
-                    </li>
-
-                    {% endfor %}
-
-                </ul>
-
-                {% else %}
-
-                <p>
-                    ✅ No major forensic indicators detected.
-                </p>
+                    <p>
+                        DKIM authentication result was not found.
+                    </p>
 
                 {% endif %}
 
             </div>
 
-        </section>
+            <!-- DMARC -->
+            <div class="auth-card">
 
+                <div class="auth-title">
+                    📋 DMARC
+                </div>
 
-        <!-- ================================================== -->
-        <!-- URL ANALYSIS -->
-        <!-- ================================================== -->
+                {% if result.forensics.dmarc|lower == "pass" %}
 
-        <section class="analysis-section">
+                    <div class="auth-status auth-pass">
+                        🟢 PASS
+                    </div>
 
-            <h2>
-                🔗 URL Analysis
-            </h2>
+                    <p>
+                        Domain alignment and authentication passed.
+                    </p>
 
+                    {% elif result.forensics.dmarc|lower == "fail" %}
 
-            {% if result.urls %}
+                    <div class="auth-status auth-fail">
+                        🔴 FAIL
+                    </div>
 
-            {% for url in result.urls %}
+                    <p>
+                        Domain authentication or alignment failed.
+                    </p>
+
+                {% else %}
+
+                <div class="auth-status auth-unknown">
+                    ⚪ NOT FOUND
+                </div>
+
+                <p>
+                    DMARC authentication result was not found.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- ================================================== -->
+<!-- FORENSIC INDICATORS -->
+<!-- ================================================== -->
+
+<section class="analysis-section">
+
+    <h2>
+        ⚠️ Forensic Indicators
+    </h2>
+
+    <div class="indicator-box">
+
+        {% if result.forensics.indicators %}
+
+            <ul>
+
+                {% for indicator in result.forensics.indicators %}
+
+                    <li>
+                        {{ indicator }}
+                    </li>
+
+                {% endfor %}
+
+            </ul>
+
+        {% else %}
+
+        <p>
+            ✅ No major forensic indicators detected.
+        </p>
+
+    {% endif %}
+
+</div>
+
+</section>
+
+<!-- ================================================== -->
+<!-- URL ANALYSIS -->
+<!-- ================================================== -->
+
+<section class="analysis-section">
+
+    <h2>
+        🔗 URL Analysis
+    </h2>
+
+    {% if result.urls %}
+
+        {% for url in result.urls %}
 
             <div class="url-box">
 
@@ -553,7 +843,6 @@
 
                 </div>
 
-
                 <div class="url-row">
 
                     <strong>Domain:</strong>
@@ -563,7 +852,6 @@
                     </span>
 
                 </div>
-
 
                 <div class="url-row">
 
@@ -575,7 +863,6 @@
 
                 </div>
 
-
                 <div class="url-row">
 
                     <strong>Suspicious:</strong>
@@ -586,62 +873,59 @@
 
                 </div>
 
-
                 {% if url.indicators %}
 
-                <div class="url-indicators">
+                    <div class="url-indicators">
 
-                    <strong>
-                        Indicators:
-                    </strong>
+                        <strong>
+                            Indicators:
+                        </strong>
 
-                    <ul>
+                        <ul>
 
-                        {% for indicator in url.indicators %}
+                            {% for indicator in url.indicators %}
 
-                        <li>
-                            {{ indicator }}
-                        </li>
+                                <li>
+                                    {{ indicator }}
+                                </li>
 
-                        {% endfor %}
+                            {% endfor %}
 
-                    </ul>
+                        </ul>
 
-                </div>
+                    </div>
 
                 {% endif %}
 
             </div>
 
-            {% endfor %}
+        {% endfor %}
 
-            {% else %}
+    {% else %}
 
-            <div class="empty-message">
-                No URLs detected.
-            </div>
+    <div class="empty-message">
+        No URLs detected.
+    </div>
 
-            {% endif %}
+{% endif %}
 
-        </section>
+</section>
 
+<!-- ================================================== -->
+<!-- IP ANALYSIS -->
+<!-- ================================================== -->
 
-        <!-- ================================================== -->
-        <!-- IP ANALYSIS -->
-        <!-- ================================================== -->
+<section class="analysis-section">
 
-        <section class="analysis-section">
+    <h2>
+        🌐 IP Analysis
+    </h2>
 
-            <h2>
-                🌐 IP Analysis
-            </h2>
+    {% if result.ips %}
 
+        <div class="ip-list">
 
-            {% if result.ips %}
-
-            <div class="ip-list">
-
-                {% for ip in result.ips %}
+            {% for ip in result.ips %}
 
                 <div class="ip-box">
 
@@ -655,35 +939,33 @@
 
                 </div>
 
-                {% endfor %}
+            {% endfor %}
 
-            </div>
+        </div>
 
-            {% else %}
+    {% else %}
 
-            <div class="empty-message">
-                No IP addresses detected.
-            </div>
+    <div class="empty-message">
+        No IP addresses detected.
+    </div>
 
-            {% endif %}
+{% endif %}
 
-        </section>
+</section>
 
+<!-- ================================================== -->
+<!-- IP GEOLOCATION -->
+<!-- ================================================== -->
 
-        <!-- ================================================== -->
-        <!-- IP GEOLOCATION -->
-        <!-- ================================================== -->
+<section class="analysis-section">
 
-        <section class="analysis-section">
+    <h2>
+        🌍 IP Geolocation
+    </h2>
 
-            <h2>
-                🌍 IP Geolocation
-            </h2>
+    {% if result.ip_results %}
 
-
-            {% if result.ip_results %}
-
-            {% for ip in result.ip_results %}
+        {% for ip in result.ip_results %}
 
             <div class="geo-box">
 
@@ -697,7 +979,6 @@
 
                 </div>
 
-
                 <div class="geo-row">
 
                     <strong>Type:</strong>
@@ -707,7 +988,6 @@
                     </span>
 
                 </div>
-
 
                 <div class="geo-row">
 
@@ -719,7 +999,6 @@
 
                 </div>
 
-
                 <div class="geo-row">
 
                     <strong>City:</strong>
@@ -729,7 +1008,6 @@
                     </span>
 
                 </div>
-
 
                 <div class="geo-row">
 
@@ -741,7 +1019,6 @@
 
                 </div>
 
-
                 <div class="geo-row">
 
                     <strong>Organization:</strong>
@@ -752,269 +1029,252 @@
 
                 </div>
 
-
                 {% if ip.latitude is defined
-                      and ip.longitude is defined
-                      and ip.latitude is not none
-                      and ip.longitude is not none %}
+                    and ip.longitude is defined
+                    and ip.latitude is not none
+                    and ip.longitude is not none %}
 
-                <div class="geo-row">
+                    <div class="geo-row">
 
-                    <strong>
-                        Coordinates:
-                    </strong>
+                        <strong>
+                            Coordinates:
+                        </strong>
 
-                    <span>
-                        {{ ip.latitude }},
-                        {{ ip.longitude }}
-                    </span>
+                        <span>
+                            {{ ip.latitude }},
+                            {{ ip.longitude }}
+                        </span>
 
-                </div>
+                    </div>
 
                 {% endif %}
 
             </div>
 
-            {% endfor %}
+        {% endfor %}
 
-            {% else %}
+    {% else %}
 
-            <div class="empty-message">
+    <div class="empty-message">
 
-                No IP addresses found in email headers.
-
-            </div>
-
-            {% endif %}
-
-        </section>
-
-
-        <!-- ================================================== -->
-        <!-- GEOLOCATION MAP -->
-        <!-- ================================================== -->
-
-        <section class="analysis-section">
-
-            <h2>
-                🗺️ Geolocation Map
-            </h2>
-
-            <div id="map"></div>
-
-
-            <script>
-
-                document.addEventListener(
-                    "DOMContentLoaded",
-                    function () {
-
-                        const defaultLatitude = 20.5937;
-
-                        const defaultLongitude = 78.9629;
-
-
-                        const map = L.map(
-                            "map"
-                        ).setView(
-                            [
-                                defaultLatitude,
-                                defaultLongitude
-                            ],
-                            4
-                        );
-
-
-                        L.tileLayer(
-                            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            {
-                                maxZoom: 19,
-                                attribution:
-                                    "&copy; OpenStreetMap contributors"
-                            }
-                        ).addTo(map);
-
-
-                        const ipLocations = [];
-
-
-                        {% for ip in result.ip_results %}
-
-                            {% if ip.latitude is defined
-                                  and ip.longitude is defined
-                                  and ip.latitude is not none
-                                  and ip.longitude is not none %}
-
-                            ipLocations.push({
-
-                                ip:
-                                    "{{ ip.ip | default('Unknown') }}",
-
-                                latitude:
-                                    {{ ip.latitude }},
-
-                                longitude:
-                                    {{ ip.longitude }},
-
-                                country:
-                                    "{{ ip.country | default('Unknown') }}",
-
-                                city:
-                                    "{{ ip.city | default('Unknown') }}",
-
-                                organization:
-                                    "{{ ip.organization | default('Unknown') }}"
-
-                            });
-
-                            {% endif %}
-
-                        {% endfor %}
-
-
-                        console.log(
-                            "IP Locations:",
-                            ipLocations
-                        );
-
-
-                        ipLocations.forEach(
-                            function (location) {
-
-                                const marker =
-                                    L.marker(
-                                        [
-                                            location.latitude,
-                                            location.longitude
-                                        ]
-                                    ).addTo(map);
-
-
-                                marker.bindPopup(
-
-                                    "<b>🌐 IP:</b> " +
-                                    location.ip +
-
-                                    "<br><b>🌍 Country:</b> " +
-                                    location.country +
-
-                                    "<br><b>🏙️ City:</b> " +
-                                    location.city +
-
-                                    "<br><b>🏢 Organization:</b> " +
-                                    location.organization
-
-                                );
-
-                            }
-                        );
-
-
-                        if (
-                            ipLocations.length > 0
-                        ) {
-
-                            const bounds = [];
-
-
-                            ipLocations.forEach(
-                                function (location) {
-
-                                    bounds.push(
-                                        [
-                                            location.latitude,
-                                            location.longitude
-                                        ]
-                                    );
-
-                                }
-                            );
-
-
-                            map.fitBounds(
-                                bounds,
-                                {
-                                    padding:
-                                        [
-                                            30,
-                                            30
-                                        ]
-                                }
-                            );
-
-                        }
-
-
-                        if (
-                            ipLocations.length === 0
-                        ) {
-
-                            L.popup()
-
-                                .setLatLng(
-                                    [
-                                        defaultLatitude,
-                                        defaultLongitude
-                                    ]
-                                )
-
-                                .setContent(
-
-                                    "<b>⚠️ No public IP location available</b>" +
-                                    "<br>" +
-                                    "No geolocation coordinates were found."
-
-                                )
-
-                                .openOn(map);
-
-                        }
-
-                    }
-                );
-
-            </script>
-
-        </section>
-
-
-        <!-- ================================================== -->
-        <!-- PDF FORENSIC REPORT -->
-        <!-- ================================================== -->
-
-        <section class="pdf-section">
-
-            <div class="pdf-content">
-
-                <h2>
-                    📄 Forensic Report
-                </h2>
-
-                <p>
-                    Generate a complete forensic analysis report
-                    containing ML detection, URL analysis,
-                    IP geolocation, email headers and
-                    threat indicators.
-                </p>
-
-
-                <a
-                    href="{{ url_for('generate_report') }}"
-                    class="pdf-button"
-                >
-                    📄 Generate PDF Report
-                </a>
-
-            </div>
-
-        </section>
+        No IP addresses found in email headers.
 
     </div>
 
-    {% endif %}
+{% endif %}
+
+</section>
+
+<!-- ================================================== -->
+<!-- GEOLOCATION MAP -->
+<!-- ================================================== -->
+
+<section class="analysis-section">
+
+    <h2>
+        🗺️ Geolocation Map
+    </h2>
+
+    <div id="map"></div>
+
+    <script>
+
+        document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+        const defaultLatitude = 20.5937;
+
+        const defaultLongitude = 78.9629;
+
+        const map = L.map(
+        "map"
+        ).setView(
+        [
+        defaultLatitude,
+        defaultLongitude
+        ],
+        4
+        );
+
+        L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+        maxZoom: 19,
+        attribution:
+        "&copy; OpenStreetMap contributors"
+        }
+        ).addTo(map);
+
+        const ipLocations = [];
+
+        {% for ip in result.ip_results %}
+
+            {% if ip.latitude is defined
+                and ip.longitude is defined
+                and ip.latitude is not none
+                and ip.longitude is not none %}
+
+                ipLocations.push({
+
+                ip:
+                "{{ ip.ip | default('Unknown') }}",
+
+                latitude:
+                {{ ip.latitude }},
+
+                longitude:
+                {{ ip.longitude }},
+
+                country:
+                "{{ ip.country | default('Unknown') }}",
+
+                city:
+                "{{ ip.city | default('Unknown') }}",
+
+                organization:
+                "{{ ip.organization | default('Unknown') }}"
+
+                });
+
+            {% endif %}
+
+        {% endfor %}
+
+        console.log(
+        "IP Locations:",
+        ipLocations
+        );
+
+        ipLocations.forEach(
+        function (location) {
+
+        const marker =
+        L.marker(
+        [
+        location.latitude,
+        location.longitude
+        ]
+        ).addTo(map);
+
+        marker.bindPopup(
+
+        "<b>🌐 IP:</b> " +
+        location.ip +
+
+        "<br><b>🌍 Country:</b> " +
+        location.country +
+
+        "<br><b>🏙️ City:</b> " +
+        location.city +
+
+        "<br><b>🏢 Organization:</b> " +
+        location.organization
+
+        );
+
+        }
+        );
+
+        if (
+        ipLocations.length > 0
+        ) {
+
+        const bounds = [];
+
+        ipLocations.forEach(
+        function (location) {
+
+        bounds.push(
+        [
+        location.latitude,
+        location.longitude
+        ]
+        );
+
+        }
+        );
+
+        map.fitBounds(
+        bounds,
+        {
+        padding:
+        [
+        30,
+        30
+        ]
+        }
+        );
+
+        }
+
+        if (
+        ipLocations.length === 0
+        ) {
+
+        L.popup()
+
+        .setLatLng(
+        [
+        defaultLatitude,
+        defaultLongitude
+        ]
+        )
+
+        .setContent(
+
+        "<b>⚠️ No public IP location available</b>" +
+        "<br>" +
+        "No geolocation coordinates were found."
+
+        )
+
+        .openOn(map);
+
+        }
+
+        }
+        );
+
+    </script>
+
+</section>
+
+<!-- ================================================== -->
+<!-- PDF FORENSIC REPORT -->
+<!-- ================================================== -->
+
+<section class="pdf-section">
+
+    <div class="pdf-content">
+
+        <h2>
+            📄 Forensic Report
+        </h2>
+
+        <p>
+            Generate a complete forensic analysis report
+            containing ML detection, URL analysis,
+            IP geolocation, email headers and
+            threat indicators.
+        </p>
+
+        <a
+        href="{{ url_for('generate_report') }}"
+        class="pdf-button"
+        >
+        📄 Generate PDF Report
+    </a>
 
 </div>
 
+</section>
+
+</div>
+
+{% endif %}
+
+</div>
 
 <!-- ================================================== -->
 <!-- FOOTER -->

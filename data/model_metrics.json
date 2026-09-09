@@ -1,0 +1,45 @@
+{
+    "accuracy": 93.87,
+    "classes": {
+        "safe": {
+            "precision": 97.65,
+            "recall": 95.3,
+            "f1_score": 96.46,
+            "support": 1001
+        },
+        "spam": {
+            "precision": 80.21,
+            "recall": 80.21,
+            "f1_score": 80.21,
+            "support": 96
+        },
+        "phishing": {
+            "precision": 90.06,
+            "recall": 93.67,
+            "f1_score": 91.83,
+            "support": 600
+        }
+    },
+    "confusion_matrix": [
+        [
+            954,
+            2,
+            45
+        ],
+        [
+            2,
+            77,
+            17
+        ],
+        [
+            21,
+            17,
+            562
+        ]
+    ],
+    "confusion_matrix_labels": [
+        "safe",
+        "spam",
+        "phishing"
+    ]
+}

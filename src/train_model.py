@@ -1,5 +1,6 @@
 import pandas as pd
 import joblib
+import json
 import os
 
 from sklearn.model_selection import train_test_split
@@ -12,8 +13,19 @@ from sklearn.metrics import (
     confusion_matrix
 )
 
+# ==========================================
+# PATHS
+# ==========================================
+
 DATASET = "data/final_emails.csv"
 MODEL_PATH = "models/email_threat_model.pkl"
+METRICS_PATH = "data/model_metrics.json"
+METRICS_MODEL_PATH = "models/model_metrics.pkl"
+
+
+# ==========================================
+# LOAD DATASET
+# ==========================================
 
 print("Loading final dataset...")
 
@@ -30,10 +42,19 @@ print()
 print("Class distribution:")
 print(df["label"].value_counts())
 
+
+# ==========================================
+# FEATURES AND LABELS
+# ==========================================
+
 X = df["email_text"]
 y = df["label"]
 
-# Train / Test split
+
+# ==========================================
+# TRAIN / TEST SPLIT
+# ==========================================
+
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -46,7 +67,11 @@ print()
 print("Training emails:", len(X_train))
 print("Testing emails:", len(X_test))
 
-# TF-IDF + Logistic Regression
+
+# ==========================================
+# TF-IDF + LOGISTIC REGRESSION
+# ==========================================
+
 model = Pipeline([
     (
         "tfidf",
@@ -66,6 +91,11 @@ model = Pipeline([
     )
 ])
 
+
+# ==========================================
+# MODEL TRAINING
+# ==========================================
+
 print()
 print("Training 3-class model...")
 print()
@@ -77,14 +107,27 @@ model.fit(
 
 print("Model training completed!")
 
-# Predictions
+
+# ==========================================
+# PREDICTIONS
+# ==========================================
+
 y_pred = model.predict(X_test)
 
-# Accuracy
+
+# ==========================================
+# ACCURACY
+# ==========================================
+
 accuracy = accuracy_score(
     y_test,
     y_pred
 )
+
+
+# ==========================================
+# MODEL EVALUATION
+# ==========================================
 
 print()
 print("===================================")
@@ -97,6 +140,12 @@ print(f"Accuracy: {accuracy * 100:.2f}%")
 print()
 print("Classification Report:")
 
+report = classification_report(
+    y_test,
+    y_pred,
+    output_dict=True
+)
+
 print(
     classification_report(
         y_test,
@@ -104,9 +153,16 @@ print(
     )
 )
 
-print("Confusion Matrix:")
 
-labels = ["safe", "spam", "phishing"]
+# ==========================================
+# CONFUSION MATRIX
+# ==========================================
+
+labels = [
+    "safe",
+    "spam",
+    "phishing"
+]
 
 cm = confusion_matrix(
     y_test,
@@ -114,72 +170,151 @@ cm = confusion_matrix(
     labels=labels
 )
 
+print("Confusion Matrix:")
+
 print()
 print("              safe  spam  phishing")
 print("safe       ", cm[0])
 print("spam       ", cm[1])
 print("phishing   ", cm[2])
 
-# Save model
+
+# ==========================================
+# CREATE COMPLETE METRICS
+# ==========================================
+
+metrics = {
+
+    # Overall performance
+    "accuracy": round(
+        accuracy * 100,
+        2
+    ),
+
+    # Class performance
+    "classes": {
+
+        "safe": {
+            "precision": round(
+                report["safe"]["precision"] * 100,
+                2
+            ),
+            "recall": round(
+                report["safe"]["recall"] * 100,
+                2
+            ),
+            "f1_score": round(
+                report["safe"]["f1-score"] * 100,
+                2
+            ),
+            "support": int(
+                report["safe"]["support"]
+            )
+        },
+
+        "spam": {
+            "precision": round(
+                report["spam"]["precision"] * 100,
+                2
+            ),
+            "recall": round(
+                report["spam"]["recall"] * 100,
+                2
+            ),
+            "f1_score": round(
+                report["spam"]["f1-score"] * 100,
+                2
+            ),
+            "support": int(
+                report["spam"]["support"]
+            )
+        },
+
+        "phishing": {
+            "precision": round(
+                report["phishing"]["precision"] * 100,
+                2
+            ),
+            "recall": round(
+                report["phishing"]["recall"] * 100,
+                2
+            ),
+            "f1_score": round(
+                report["phishing"]["f1-score"] * 100,
+                2
+            ),
+            "support": int(
+                report["phishing"]["support"]
+            )
+        }
+    },
+
+    # Confusion Matrix
+    "confusion_matrix": cm.tolist(),
+
+    # Order of confusion matrix classes
+    "confusion_matrix_labels": labels
+}
+
+
+# ==========================================
+# CREATE REQUIRED DIRECTORIES
+# ==========================================
+
 os.makedirs(
     "models",
     exist_ok=True
 )
 
+os.makedirs(
+    "data",
+    exist_ok=True
+)
+
+
+# ==========================================
+# SAVE ML MODEL
+# ==========================================
+
 joblib.dump(
     model,
     MODEL_PATH
 )
-metrics = {
-    "accuracy": round(accuracy * 100, 2),
-    "phishing_precision": round(
-        classification_report(
-            y_test,
-            y_pred,
-            output_dict=True
-        )["phishing"]["precision"] * 100,
-        2
-    ),
-    "phishing_recall": round(
-        classification_report(
-            y_test,
-            y_pred,
-            output_dict=True
-        )["phishing"]["recall"] * 100,
-        2
-    ),
-    "phishing_f1": round(
-        classification_report(
-            y_test,
-            y_pred,
-            output_dict=True
-        )["phishing"]["f1-score"] * 100,
-        2
-    ),
-    "safe_f1": round(
-        classification_report(
-            y_test,
-            y_pred,
-            output_dict=True
-        )["safe"]["f1-score"] * 100,
-        2
-    ),
-    "spam_f1": round(
-        classification_report(
-            y_test,
-            y_pred,
-            output_dict=True
-        )["spam"]["f1-score"] * 100,
-        2
+
+print()
+print("Model saved successfully!")
+
+
+# ==========================================
+# SAVE METRICS AS JSON
+# ==========================================
+
+with open(
+    METRICS_PATH,
+    "w",
+    encoding="utf-8"
+) as f:
+
+    json.dump(
+        metrics,
+        f,
+        indent=4
     )
-}
+
+
+# ==========================================
+# SAVE METRICS AS PICKLE
+# ==========================================
 
 joblib.dump(
     metrics,
-    "models/model_metrics.pkl"
+    METRICS_MODEL_PATH
 )
 
-print("Metrics saved successfully!")
+
+# ==========================================
+# FINAL OUTPUT
+# ==========================================
 
 print()
 print("===================================")
@@ -187,4 +322,16 @@ print("MODEL SAVED SUCCESSFULLY")
 print("===================================")
 
 print()
-print("Location:", MODEL_PATH)
+print("Model Location:")
+print(MODEL_PATH)
+
+print()
+print("Metrics JSON Location:")
+print(METRICS_PATH)
+
+print()
+print("Metrics Pickle Location:")
+print(METRICS_MODEL_PATH)
+
+print()
+print("Metrics saved successfully!")

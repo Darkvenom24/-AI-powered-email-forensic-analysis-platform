@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, send_file
 import joblib
 import re
 import os
+import json
 
 from src.url_analyzer import extract_urls, analyze_url
 from src.forensics import (
@@ -13,39 +14,125 @@ from src.forensics import (
 from src.geolocation import get_ip_location
 from src.pdf_report import generate_pdf_report
 
-
 # ============================================================
 # FLASK APP
 # ============================================================
 
 app = Flask(__name__)
 
-app.secret_key = "ai-email-threat-detector-secret-key"
+# ============================================================
+# SECURITY CONFIGURATION
+# ============================================================
 
+# Keep the secret key outside source code in production.
+app.secret_key = os.environ.get(
+    "FLASK_SECRET_KEY",
+    "dev-only-change-this-secret-key"
+)
+
+if app.secret_key == "dev-only-change-this-secret-key":
+    print(
+        "WARNING: FLASK_SECRET_KEY is not set. "
+        "Using development secret key."
+    )
+
+# Maximum HTTP request size: 5 MB
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
-
 
 # ============================================================
 # LOAD ML MODEL
 # ============================================================
 
-model = joblib.load(
-    "models/email_threat_model.pkl"
-)
+MODEL_PATH = "models/email_threat_model.pkl"
 
+try:
+    model = joblib.load(MODEL_PATH)
+    print("ML model loaded successfully!")
+except Exception as e:
+    model = None
+    print(f"WARNING: Failed to load ML model: {e}")
+
+# ============================================================
+# LOAD ML MODEL PERFORMANCE METRICS
+# ============================================================
+
+METRICS_PATH = "data/model_metrics.json"
+
+try:
+
+    with open(
+        METRICS_PATH,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        model_metrics = json.load(f)
+
+    print("Model metrics loaded successfully!")
+
+except Exception as e:
+
+    print(
+        f"Failed to load model metrics: {e}"
+    )
+
+    model_metrics = {}
+
+# ============================================================
+# SECURITY / ERROR HANDLING HELPERS
+# ============================================================
+
+MAX_EMAIL_FILE_SIZE = 5 * 1024 * 1024
+
+def is_valid_eml(message, raw_bytes):
+    """Basic validation for uploaded .eml files."""
+
+    if not raw_bytes or not raw_bytes.strip():
+        return False
+
+    common_headers = (
+        "From",
+        "To",
+        "Subject",
+        "Date",
+        "Message-ID",
+        "Reply-To",
+        "Return-Path",
+    )
+
+    return any(message.get(header) for header in common_headers)
+
+@app.errorhandler(413)
+def request_too_large(error):
+    return render_template(
+        "index.html",
+        result=None,
+        error="File is too large. Maximum allowed size is 5 MB.",
+        model_metrics=model_metrics
+    ), 413
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    print(f"Internal server error: {error}")
+    return render_template(
+        "index.html",
+        result=None,
+        error="An internal error occurred. Please try again.",
+        model_metrics=model_metrics
+    ), 500
 
 # ============================================================
 # IP EXTRACTION
 # ============================================================
 
 def extract_ips(text):
+
     pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
 
     return re.findall(
         pattern,
         text
     )
-
 
 # ============================================================
 # EMAIL ANALYSIS
@@ -61,6 +148,14 @@ def analyze_email(
     # 1. ML THREAT DETECTION
     # --------------------------------------------------------
 
+    if model is None:
+        raise RuntimeError(
+            "ML model is unavailable. Please check the model file."
+        )
+
+    if not isinstance(email_text, str) or not email_text.strip():
+        raise ValueError("Email content cannot be empty.")
+
     prediction = model.predict(
         [email_text]
     )[0]
@@ -72,7 +167,6 @@ def analyze_email(
     confidence = max(
         probabilities
     ) * 100
-
 
     # --------------------------------------------------------
     # 2. URL ANALYSIS
@@ -94,7 +188,6 @@ def analyze_email(
             url_result
         )
 
-
     # --------------------------------------------------------
     # 3. IP EXTRACTION
     # --------------------------------------------------------
@@ -102,7 +195,6 @@ def analyze_email(
     ips = extract_ips(
         email_text
     )
-
 
     # --------------------------------------------------------
     # 4. FORENSICS
@@ -126,37 +218,60 @@ def analyze_email(
         except Exception:
 
             forensic_data = {
+
                 "from": "Not Found",
+
                 "reply_to": "Not Found",
+
                 "return_path": "Not Found",
+
                 "subject": "Not Found",
+
                 "message_id": "Not Found",
+
                 "received": [],
+
                 "spf": "Not Found",
+
                 "dkim": "Not Found",
+
                 "dmarc": "Not Found",
+
                 "indicators": []
             }
-
 
     # --------------------------------------------------------
     # 5. RISK ENGINE
     # --------------------------------------------------------
 
     risk_score = 0
-
     risk_reasons = []
 
     prediction_lower = prediction.lower()
 
+    # Normalize authentication results.
+    spf_status = str(
+        forensic_data.get("spf", "Not Found")
+        if forensic_data else "Not Found"
+    ).lower()
 
-    # --------------------------------------------------------
+    dkim_status = str(
+        forensic_data.get("dkim", "Not Found")
+        if forensic_data else "Not Found"
+    ).lower()
+
+    dmarc_status = str(
+        forensic_data.get("dmarc", "Not Found")
+        if forensic_data else "Not Found"
+    ).lower()
+
+    # ========================================================
     # 5.1 ML THREAT CLASS
-    # --------------------------------------------------------
+    # ========================================================
 
     if prediction_lower == "phishing":
 
-        risk_score += 60
+        risk_score += 55
 
         risk_reasons.append(
             "AI model classified the email as PHISHING"
@@ -164,7 +279,7 @@ def analyze_email(
 
     elif prediction_lower == "spam":
 
-        risk_score += 30
+        risk_score += 25
 
         risk_reasons.append(
             "AI model classified the email as SPAM"
@@ -176,14 +291,21 @@ def analyze_email(
             "AI model classified the email as SAFE"
         )
 
-
-    # --------------------------------------------------------
+    # ========================================================
     # 5.2 ML CONFIDENCE
-    # --------------------------------------------------------
+    # ========================================================
 
-    if confidence >= 80:
+    if confidence >= 90:
 
         risk_score += 15
+
+        risk_reasons.append(
+            "Very high ML confidence"
+        )
+
+    elif confidence >= 80:
+
+        risk_score += 12
 
         risk_reasons.append(
             "High ML confidence"
@@ -191,7 +313,7 @@ def analyze_email(
 
     elif confidence >= 60:
 
-        risk_score += 10
+        risk_score += 7
 
         risk_reasons.append(
             "Moderate ML confidence"
@@ -203,21 +325,31 @@ def analyze_email(
             "Low ML confidence"
         )
 
-
-    # --------------------------------------------------------
+    # ========================================================
     # 5.3 URL ANALYSIS
-    # --------------------------------------------------------
+    # ========================================================
+
+    suspicious_url_count = 0
+    severe_url_count = 0
 
     for url_data in url_results:
 
-        url_risk = url_data.get(
-            "risk_score",
-            0
+        url_risk = int(
+            url_data.get(
+                "risk_score",
+                0
+            ) or 0
         )
 
+        indicators = url_data.get(
+            "indicators",
+            []
+        ) or []
+
+        # Base URL contribution.
         risk_score += min(
-            int(url_risk * 0.4),
-            15
+            int(url_risk * 0.30),
+            12
         )
 
         if url_data.get(
@@ -225,16 +357,23 @@ def analyze_email(
             False
         ):
 
-            risk_score += 15
+            suspicious_url_count += 1
+
+            risk_score += 10
 
             risk_reasons.append(
                 "Suspicious URL detected"
             )
 
-        indicators = url_data.get(
-            "indicators",
-            []
-        )
+        if url_risk >= 50:
+
+            severe_url_count += 1
+
+            risk_score += 8
+
+            risk_reasons.append(
+                "High-risk URL detected"
+            )
 
         if indicators:
 
@@ -243,10 +382,57 @@ def analyze_email(
                 f"{len(indicators)}"
             )
 
+    # ========================================================
+    # 5.4 PHISHING + URL CORRELATION
+    # ========================================================
 
-    # --------------------------------------------------------
-    # 5.4 FORENSIC ANALYSIS
-    # --------------------------------------------------------
+    # A phishing classification combined with a suspicious URL
+    # is stronger evidence than either signal alone.
+    if (
+        prediction_lower == "phishing"
+        and suspicious_url_count > 0
+    ):
+
+        risk_score += 10
+
+        risk_reasons.append(
+            "Phishing classification is reinforced by a suspicious URL"
+        )
+
+    # ========================================================
+    # 5.5 EMAIL AUTHENTICATION
+    # ========================================================
+
+    auth_failures = 0
+
+    for name, status in (
+        ("SPF", spf_status),
+        ("DKIM", dkim_status),
+        ("DMARC", dmarc_status),
+    ):
+
+        if status == "fail":
+
+            auth_failures += 1
+
+            risk_score += 7
+
+            risk_reasons.append(
+                f"{name} authentication failed"
+            )
+
+    # Multiple authentication failures are stronger evidence.
+    if auth_failures >= 2:
+
+        risk_score += 5
+
+        risk_reasons.append(
+            "Multiple email authentication failures detected"
+        )
+
+    # ========================================================
+    # 5.6 FORENSIC ANALYSIS
+    # ========================================================
 
     forensic_indicators = []
 
@@ -255,16 +441,14 @@ def analyze_email(
         forensic_indicators = forensic_data.get(
             "indicators",
             []
-        )
-
+        ) or []
 
     forensic_score = min(
-        len(forensic_indicators) * 5,
-        15
+        len(forensic_indicators) * 4,
+        12
     )
 
     risk_score += forensic_score
-
 
     if forensic_indicators:
 
@@ -273,10 +457,27 @@ def analyze_email(
             f"{len(forensic_indicators)}"
         )
 
+    # Detect a From / Reply-To mismatch from the forensic indicators.
+    mismatch_detected = any(
+        "reply-to" in str(indicator).lower()
+        and (
+            "mismatch" in str(indicator).lower()
+            or "different" in str(indicator).lower()
+        )
+        for indicator in forensic_indicators
+    )
 
-    # --------------------------------------------------------
-    # 5.5 IP ANALYSIS
-    # --------------------------------------------------------
+    if mismatch_detected:
+
+        risk_score += 8
+
+        risk_reasons.append(
+            "From and Reply-To domains do not match"
+        )
+
+    # ========================================================
+    # 5.7 IP ANALYSIS
+    # ========================================================
 
     public_ip_count = 0
 
@@ -290,7 +491,6 @@ def analyze_email(
 
                 public_ip_count += 1
 
-
     if public_ip_count > 0:
 
         risk_score += min(
@@ -302,20 +502,41 @@ def analyze_email(
             f"{public_ip_count} public IP address(es) found"
         )
 
+    # ========================================================
+    # 5.8 SAFE EMAIL FALSE-POSITIVE CONTROL
+    # ========================================================
 
-    # --------------------------------------------------------
-    # 5.6 FINAL SCORE
-    # --------------------------------------------------------
+    # A high-confidence SAFE prediction should not become high risk
+    # from weak secondary signals alone.
+    if (
+        prediction_lower == "safe"
+        and confidence >= 85
+        and suspicious_url_count == 0
+        and auth_failures == 0
+        and not forensic_indicators
+    ):
+
+        risk_score = min(
+            risk_score,
+            15
+        )
+
+        risk_reasons.append(
+            "High-confidence safe email with no strong secondary indicators"
+        )
+
+    # ========================================================
+    # 5.9 FINAL SCORE
+    # ========================================================
 
     risk_score = min(
         int(risk_score),
         100
     )
 
-
-    # --------------------------------------------------------
-    # 5.7 FINAL THREAT LEVEL
-    # --------------------------------------------------------
+    # ========================================================
+    # 5.10 FINAL THREAT LEVEL
+    # ========================================================
 
     if risk_score >= 70:
 
@@ -329,17 +550,15 @@ def analyze_email(
 
         threat = "LOW RISK"
 
-
-    # --------------------------------------------------------
-    # 5.8 REMOVE DUPLICATE REASONS
-    # --------------------------------------------------------
+    # ========================================================
+    # 5.11 REMOVE DUPLICATE REASONS
+    # ========================================================
 
     risk_reasons = list(
         dict.fromkeys(
             risk_reasons
         )
     )
-
 
     # --------------------------------------------------------
     # 6. RETURN RESULT
@@ -378,7 +597,6 @@ def analyze_email(
             ip_results or []
     }
 
-
 # ============================================================
 # HOME PAGE
 # ============================================================
@@ -397,7 +615,6 @@ def index():
 
     error = None
 
-
     # ========================================================
     # POST REQUEST
     # ========================================================
@@ -406,7 +623,6 @@ def index():
 
         email_text = ""
 
-
         # ----------------------------------------------------
         # 1. PASTED EMAIL
         # ----------------------------------------------------
@@ -414,13 +630,12 @@ def index():
         pasted_text = request.form.get(
             "email_text",
             ""
-        )
+        ).strip()
 
-
-        if pasted_text.strip():
-
+        if pasted_text:
             email_text = pasted_text
-
+        else:
+            email_text = ""
 
         # ----------------------------------------------------
         # 2. .EML FILE UPLOAD
@@ -430,22 +645,21 @@ def index():
             "email_file"
         )
 
-
         if (
             uploaded_file
             and uploaded_file.filename
         ):
 
+            # Check filename
+            filename = uploaded_file.filename.strip()
 
-            # Check extension
+            if not filename:
 
-            if not uploaded_file.filename.lower().endswith(
-                ".eml"
-            ):
+                error = "Please select an .eml file."
 
-                error = (
-                    "Only .eml files are allowed."
-                )
+            elif not filename.lower().endswith(".eml"):
+
+                error = "Only .eml files are allowed."
 
             else:
 
@@ -457,102 +671,226 @@ def index():
 
                     raw_bytes = uploaded_file.read()
 
+                    # --------------------------------
+                    # File size check
+                    # --------------------------------
+
+                    if len(raw_bytes) > MAX_EMAIL_FILE_SIZE:
+
+                        error = (
+                            "Uploaded file is too large. "
+                            "Maximum allowed size is 5 MB."
+                        )
 
                     # --------------------------------
                     # Empty file check
                     # --------------------------------
 
-                    if not raw_bytes:
+                    elif not raw_bytes.strip():
 
-                        error = (
-                            "Uploaded file is empty."
-                        )
+                        error = "Uploaded file is empty."
 
                     else:
 
                         # --------------------------------
-                        # Parse email
+                        # Parse email safely
                         # --------------------------------
 
-                        message = parse_email(
+                        try:
+                            message = parse_email(
+                                raw_bytes
+                            )
+                        except Exception as parse_error:
+                            print(
+                                f"Email parsing warning: {parse_error}"
+                            )
+                            message = None
+
+                        if message is None:
+
+                            error = (
+                                "Invalid or malformed .eml file. "
+                                "Unable to parse the email."
+                            )
+
+                        elif not is_valid_eml(
+                            message,
                             raw_bytes
-                        )
+                        ):
 
-
-                        # --------------------------------
-                        # Extract body
-                        # --------------------------------
-
-                        body = get_email_body(
-                            message
-                        )
-
-
-                        # --------------------------------
-                        # Fallback to complete email
-                        # --------------------------------
-
-                        if not body.strip():
-
-                            body = raw_bytes.decode(
-                                "utf-8",
-                                errors="replace"
+                            error = (
+                                "Invalid .eml file. "
+                                "No valid email headers were found."
                             )
 
+                        else:
 
-                        # --------------------------------
-                        # Forensic analysis
-                        # --------------------------------
+                            # --------------------------------
+                            # Extract body
+                            # --------------------------------
 
-                        forensic_data = analyze_headers(
-                            message
-                        )
+                            try:
+                                body = get_email_body(
+                                    message
+                                )
+                            except Exception as body_error:
+                                print(
+                                    f"Email body extraction warning: "
+                                    f"{body_error}"
+                                )
+                                body = ""
 
+                            # --------------------------------
+                            # Fallback to complete email
+                            # --------------------------------
 
-                        # --------------------------------
-                        # Extract header IPs
-                        # --------------------------------
+                            if not body.strip():
 
-                        header_ips = extract_header_ips(
-                            message
-                        )
+                                body = raw_bytes.decode(
+                                    "utf-8",
+                                    errors="replace"
+                                )
 
+                            if not body.strip():
 
-                        # --------------------------------
-                        # IP geolocation
-                        # --------------------------------
+                                error = (
+                                    "The email does not contain readable content."
+                                )
 
-                        ip_results = []
+                            else:
 
+                                # --------------------------------
+                                # Forensic analysis
+                                # --------------------------------
 
-                        for ip in header_ips:
+                                try:
+                                    forensic_data = analyze_headers(
+                                        message
+                                    )
+                                except Exception as forensic_error:
 
-                            location = get_ip_location(
-                                ip
-                            )
+                                    print(
+                                        f"Forensic analysis warning: "
+                                        f"{forensic_error}"
+                                    )
 
-                            ip_results.append(
-                                location
-                            )
+                                    forensic_data = {
+                                        "from": "Not Found",
+                                        "reply_to": "Not Found",
+                                        "return_path": "Not Found",
+                                        "subject": "Not Found",
+                                        "message_id": "Not Found",
+                                        "received": [],
+                                        "spf": "Not Found",
+                                        "dkim": "Not Found",
+                                        "dmarc": "Not Found",
+                                        "indicators": [
+                                            "Email forensic analysis could not be completed."
+                                        ]
+                                    }
 
+                                # --------------------------------
+                                # Extract header IPs
+                                # --------------------------------
 
-                        # --------------------------------
-                        # Complete analysis
-                        # --------------------------------
+                                try:
+                                    header_ips = extract_header_ips(
+                                        message
+                                    )
+                                except Exception as ip_error:
 
-                        result = analyze_email(
-                            body,
-                            forensic_data,
-                            ip_results
-                        )
+                                    print(
+                                        f"Header IP extraction warning: "
+                                        f"{ip_error}"
+                                    )
 
+                                    header_ips = []
+
+                                # --------------------------------
+                                # IP geolocation
+                                # --------------------------------
+
+                                ip_results = []
+
+                                for ip in header_ips:
+
+                                    try:
+
+                                        location = get_ip_location(
+                                            ip
+                                        )
+
+                                        if not isinstance(
+                                            location,
+                                            dict
+                                        ):
+                                            location = {
+                                                "ip": ip,
+                                                "type": "Unknown",
+                                                "country": "Unavailable",
+                                                "city": "Unavailable",
+                                                "region": "Unavailable",
+                                                "organization": "Unavailable",
+                                                "latitude": None,
+                                                "longitude": None,
+                                            }
+
+                                    except Exception as geo_error:
+
+                                        print(
+                                            f"Geolocation warning for {ip}: "
+                                            f"{geo_error}"
+                                        )
+
+                                        location = {
+                                            "ip": ip,
+                                            "type": "Unknown",
+                                            "country": "Unavailable",
+                                            "city": "Unavailable",
+                                            "region": "Unavailable",
+                                            "organization": "Unavailable",
+                                            "latitude": None,
+                                            "longitude": None,
+                                        }
+
+                                    ip_results.append(
+                                        location
+                                    )
+
+                                # --------------------------------
+                                # Complete analysis
+                                # --------------------------------
+
+                                try:
+
+                                    result = analyze_email(
+                                        body,
+                                        forensic_data,
+                                        ip_results
+                                    )
+
+                                except Exception as analysis_error:
+
+                                    print(
+                                        f"Email analysis warning: "
+                                        f"{analysis_error}"
+                                    )
+
+                                    error = (
+                                        "Email analysis failed. "
+                                        "Please check the email and try again."
+                                    )
 
                 except Exception as e:
 
-                    error = (
-                        f"Email analysis failed: {e}"
+                    print(
+                        f"Email upload processing error: {e}"
                     )
 
+                    error = (
+                        "Unable to process the uploaded email. "
+                        "Please check the file and try again."
+                    )
 
         # ----------------------------------------------------
         # 3. ANALYZE PASTED EMAIL
@@ -560,10 +898,32 @@ def index():
 
         elif email_text.strip() and not error:
 
-            result = analyze_email(
-                email_text
-            )
+            try:
 
+                result = analyze_email(
+                    email_text
+                )
+
+            except Exception as e:
+
+                print(
+                    f"Pasted email analysis error: {e}"
+                )
+
+                error = (
+                    "Email analysis failed. "
+                    "Please check the email content and try again."
+                )
+
+        # ----------------------------------------------------
+        # 4. EMPTY INPUT VALIDATION
+        # ----------------------------------------------------
+
+        elif not email_text.strip() and not error:
+
+            error = (
+                "Please upload an .eml file or paste email content."
+            )
 
         # ====================================================
         # STORE RESULT FOR PDF
@@ -575,7 +935,6 @@ def index():
                 "analysis_result"
             ] = result
 
-
     # ========================================================
     # RENDER DASHBOARD
     # ========================================================
@@ -583,9 +942,9 @@ def index():
     return render_template(
         "index.html",
         result=result,
-        error=error
+        error=error,
+        model_metrics=model_metrics
     )
-
 
 # ============================================================
 # GENERATE PDF REPORT
@@ -606,14 +965,12 @@ def generate_report():
         "analysis_result"
     )
 
-
     if not result:
 
         return (
             "No analysis result available. "
             "Please analyze an email first."
         )
-
 
     try:
 
@@ -628,7 +985,6 @@ def generate_report():
             exist_ok=True
         )
 
-
         # ----------------------------------------------------
         # PDF filename
         # ----------------------------------------------------
@@ -638,7 +994,6 @@ def generate_report():
             "email_forensic_report.pdf"
         )
 
-
         # ----------------------------------------------------
         # Generate PDF
         # ----------------------------------------------------
@@ -647,7 +1002,6 @@ def generate_report():
             result,
             pdf_path
         )
-
 
         # ----------------------------------------------------
         # Send PDF
@@ -660,13 +1014,16 @@ def generate_report():
             mimetype="application/pdf"
         )
 
-
     except Exception as e:
 
-        return (
-            f"PDF report generation failed: {e}"
+        print(
+            f"PDF report generation error: {e}"
         )
 
+        return (
+            "PDF report generation failed. "
+            "Please try again after analyzing the email."
+        ), 500
 
 # ============================================================
 # RUN APPLICATION
@@ -675,5 +1032,5 @@ def generate_report():
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=False
     )
