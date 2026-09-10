@@ -753,40 +753,50 @@ body {
 /* 6. IP INTELLIGENCE & LEAFLET MAP */
 .geo-container {
     display: grid;
-    grid-template-columns: 1fr 1.3fr;
-    gap: 16px;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 14px;
     height: 220px;
 }
 
 .geo-meta {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
     font-size: 12px;
+    min-width: 0;
 }
 
 .geo-row {
     display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 4px;
+    flex-direction: column;
+    gap: 3px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 5px;
+    min-width: 0;
 }
 
 .geo-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
     color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .geo-val {
     color: var(--text-primary);
     font-weight: 600;
     font-family: var(--font-mono);
+    font-size: 12px;
+    word-break: break-word;
 }
 
 .geo-disclaimer {
     font-size: 10px;
     color: var(--text-muted);
-    margin-top: 6px;
+    margin-top: 4px;
     font-style: italic;
 }
 

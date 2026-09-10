@@ -108,6 +108,42 @@
                 display: none !important;
             }
         }
+        .geo-container {
+            display: grid !important;
+            grid-template-columns: 1fr 1.15fr !important;
+            gap: 14px !important;
+            height: 220px !important;
+        }
+        .geo-meta {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            justify-content: center !important;
+            min-width: 0 !important;
+        }
+        .geo-row {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 3px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            padding-bottom: 5px !important;
+            min-width: 0 !important;
+        }
+        .geo-label {
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.6px !important;
+            color: var(--text-muted) !important;
+            white-space: nowrap !important;
+        }
+        .geo-val {
+            color: var(--text-primary) !important;
+            font-weight: 600 !important;
+            font-family: var(--font-mono) !important;
+            font-size: 12px !important;
+            word-break: break-word !important;
+        }
     </style>
 
     <!-- CSS Dependencies -->
@@ -388,16 +424,16 @@
                         <div class="geo-container">
                             <div class="geo-meta">
                                 <div class="geo-row">
-                                    <span class="geo-label">Target IP:</span>
+                                    <span class="geo-label">Target IP</span>
                                     <span class="geo-val" id="geo-ip">{% if result and result.ips and result.ips|length > 0 %}{{ result.ips[0] }}{% else %}185.220.101.1{% endif %}</span>
                                 </div>
                                 <div class="geo-row">
-                                    <span class="geo-label">Country:</span>
+                                    <span class="geo-label">Country</span>
                                     <span class="geo-val" id="geo-country">{% if result and result.ip_results and result.ip_results|length > 0 %}{{ result.ip_results[0].country }}{% else %}Netherlands{% endif %}</span>
                                 </div>
                                 <div class="geo-row">
-                                    <span class="geo-label">Provider/ASN:</span>
-                                    <span class="geo-val" id="geo-org" style="font-size:11px;">{% if result and result.ip_results and result.ip_results|length > 0 %}{{ result.ip_results[0].organization or 'AS24940 Hetzner' }}{% else %}Tor Relay / Bulletproof{% endif %}</span>
+                                    <span class="geo-label">Provider / ASN</span>
+                                    <span class="geo-val" id="geo-org">{% if result and result.ip_results and result.ip_results|length > 0 %}{{ result.ip_results[0].organization or 'AS24940 Hetzner' }}{% else %}Tor Relay / Bulletproof{% endif %}</span>
                                 </div>
                                 <div class="geo-disclaimer">Approximate IP Geolocation (ip-api.com)</div>
                             </div>

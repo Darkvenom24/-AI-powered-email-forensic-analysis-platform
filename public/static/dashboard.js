@@ -281,8 +281,16 @@ function updateDashboardUI(data) {
     // 1. Gauge
     updateGauge(data.risk_score, data.threat);
 
-    // 2. Sender / Recipient / Domain / URL
+    // 2. Subject / Sender / Recipient / Domain / URL
     const forensics = data.forensics || {};
+    const subjVal = (forensics.subject && forensics.subject !== 'Not Found')
+        ? forensics.subject
+        : (data.subject || 'SIMULATED PHISHING TEST — NO ACTION REQUIRED');
+    const subjEl = document.getElementById('card-subject');
+    const headerSubj = document.getElementById('header-subject');
+    if (subjEl) subjEl.textContent = subjVal;
+    if (headerSubj) headerSubj.textContent = subjVal;
+
     const senderEl = document.getElementById('card-sender');
     if (senderEl) senderEl.textContent = forensics.from || data.sender || 'Not Found';
 
@@ -328,14 +336,24 @@ function updateDashboardUI(data) {
     // 5. IP Intelligence
     const ipVal = (data.ips && data.ips.length > 0) ? data.ips[0] : '185.220.101.1';
     const ipDisplay = document.getElementById('geo-ip');
-    if (ipDisplay) ipDisplay.textContent = ipVal;
+    if (ipDisplay) {
+        ipDisplay.textContent = ipVal;
+        ipDisplay.title = ipVal;
+    }
 
     if (data.ip_results && data.ip_results.length > 0) {
         const firstGeo = data.ip_results[0];
         const countryEl = document.getElementById('geo-country');
-        if (countryEl) countryEl.textContent = firstGeo.country || 'Unknown';
+        if (countryEl) {
+            countryEl.textContent = firstGeo.country || 'Unknown';
+            countryEl.title = firstGeo.country || 'Unknown';
+        }
         const orgEl = document.getElementById('geo-org');
-        if (orgEl) orgEl.textContent = firstGeo.organization || firstGeo.org || 'Unknown Host';
+        const orgVal = firstGeo.organization || firstGeo.org || 'Unknown Host';
+        if (orgEl) {
+            orgEl.textContent = orgVal;
+            orgEl.title = orgVal;
+        }
         plotIpLocations(data.ip_results);
     }
 
@@ -503,7 +521,11 @@ function setupEventListeners() {
     // Export PDF Report buttons
     document.querySelectorAll('.btn-export-report').forEach(btn => {
         btn.addEventListener('click', () => {
-            window.location.href = '/api/export-report';
+            if (currentResult && currentResult.case_id) {
+                window.location.href = `/api/export-report?case_id=${encodeURIComponent(currentResult.case_id)}`;
+            } else {
+                window.location.href = '/api/export-report';
+            }
         });
     });
 

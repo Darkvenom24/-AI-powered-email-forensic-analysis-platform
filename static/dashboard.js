@@ -336,14 +336,24 @@ function updateDashboardUI(data) {
     // 5. IP Intelligence
     const ipVal = (data.ips && data.ips.length > 0) ? data.ips[0] : '185.220.101.1';
     const ipDisplay = document.getElementById('geo-ip');
-    if (ipDisplay) ipDisplay.textContent = ipVal;
+    if (ipDisplay) {
+        ipDisplay.textContent = ipVal;
+        ipDisplay.title = ipVal;
+    }
 
     if (data.ip_results && data.ip_results.length > 0) {
         const firstGeo = data.ip_results[0];
         const countryEl = document.getElementById('geo-country');
-        if (countryEl) countryEl.textContent = firstGeo.country || 'Unknown';
+        if (countryEl) {
+            countryEl.textContent = firstGeo.country || 'Unknown';
+            countryEl.title = firstGeo.country || 'Unknown';
+        }
         const orgEl = document.getElementById('geo-org');
-        if (orgEl) orgEl.textContent = firstGeo.organization || firstGeo.org || 'Unknown Host';
+        const orgVal = firstGeo.organization || firstGeo.org || 'Unknown Host';
+        if (orgEl) {
+            orgEl.textContent = orgVal;
+            orgEl.title = orgVal;
+        }
         plotIpLocations(data.ip_results);
     }
 
