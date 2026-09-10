@@ -531,6 +531,8 @@ def process_email_source(raw_bytes=None, text_content=None):
 # ============================================================
 
 @app.route("/", methods=["GET", "POST"])
+@app.route("/api/index", methods=["GET", "POST"])
+@app.route("/api/index.py", methods=["GET", "POST"])
 def index():
     result = None
     error = None
