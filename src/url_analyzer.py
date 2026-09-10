@@ -148,6 +148,14 @@ def analyze_url(url):
         risk_score += 10
 
     # --------------------------------
+    # EXECUTABLE / PAYLOAD DOWNLOAD CHECK
+    # --------------------------------
+    path = parsed.path.lower()
+    if any(path.endswith(ext) for ext in [".exe", ".scr", ".bat", ".cmd", ".vbs", ".msi", ".ps1", ".jar", ".apk", ".iso", ".zip"]):
+        indicators.append("URL points directly to a downloadable executable or payload")
+        risk_score += 35
+
+    # --------------------------------
     # FINAL SCORE
     # --------------------------------
 

@@ -3,1429 +3,487 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Email Threat Detector</title>
-
+    <title>SIH26106 | AI-Powered Email Forensic Intelligence Platform</title>
+    <meta name="description" content="Advanced AI-powered email forensic analysis, geolocation tracking, header anomalies, threat scoring, and relationship graph platform for SIH26106.">
+    
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<style>
-.task19-stats { margin: 22px 0; }
-.task19-stats h2 { text-align:center; margin-bottom:15px; }
-.task19-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-.task19-risk { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; }
-.task19-card { background:#fff; padding:16px; border-radius:10px; text-align:center; box-shadow:0 3px 12px rgba(0,0,0,.08); }
-.task19-card h3 { margin:0 0 8px; font-size:14px; }
-.task19-num { font-size:28px; font-weight:700; }
-.task19-avg { margin-top:12px; padding:14px; text-align:center; background:#f8fafc; border-radius:10px; font-weight:600; }
-@media(max-width:700px) {
-    .task19-grid,.task19-risk { grid-template-columns:1fr 1fr; }
-}
-@media(max-width:450px) {
-    .task19-grid,.task19-risk { grid-template-columns:1fr; }
-}
-</style>
-
 </head>
-
 <body>
 
-<div class="container">
-
-    <header class="header">
-        <h1>🛡️ AI Email Threat Detector</h1>
-        <p class="subtitle">
-            AI Email Threat Detection + Geolocation + Forensics
-        </p>
-    </header>
-
-    <div style="text-align:center;margin:15px 0">
-        <a href="{{ url_for('investigation_history') }}"
-           style="display:inline-block;padding:10px 18px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-weight:bold">
-            📋 Investigation History
-        </a>
-    </div>
-
-
-    <!-- TASK 19: LIVE INVESTIGATION STATISTICS -->
-    <section class="task19-stats">
-        <h2>📊 Investigation Statistics</h2>
-
-        <div class="task19-grid">
-            <div class="task19-card">
-                <h3>📁 Total Cases</h3>
-                <div class="task19-num">{{ stats.total }}</div>
-            </div>
-
-            <div class="task19-card">
-                <h3>🎣 Phishing</h3>
-                <div class="task19-num">{{ stats.phishing }}</div>
-            </div>
-
-            <div class="task19-card">
-                <h3>🚨 Spam</h3>
-                <div class="task19-num">{{ stats.spam }}</div>
-            </div>
-
-            <div class="task19-card">
-                <h3>🛡️ Safe</h3>
-                <div class="task19-num">{{ stats.safe }}</div>
-            </div>
-        </div>
-
-        <div class="task19-risk">
-            <div class="task19-card">
-                <h3>🔴 High Risk</h3>
-                <div class="task19-num">{{ stats.high_risk }}</div>
-            </div>
-
-            <div class="task19-card">
-                <h3>🟠 Medium Risk</h3>
-                <div class="task19-num">{{ stats.medium_risk }}</div>
-            </div>
-
-            <div class="task19-card">
-                <h3>🟢 Low Risk</h3>
-                <div class="task19-num">{{ stats.low_risk }}</div>
-            </div>
-        </div>
-
-        <div class="task19-avg">
-            📈 Average Risk Score:
-            <strong>{{ stats.average_risk }} / 100</strong>
-        </div>
-    </section>
-
-    <section class="input-section">
-
-        <form method="POST" enctype="multipart/form-data">
-
-            <h2>📧 Analyze Email</h2>
-
-            <div class="input-group">
-
-                <label>Upload .EML File</label>
-
-                <input
-                    type="file"
-                    name="email_file"
-                    accept=".eml"
-                >
-
-            </div>
-
-            <div class="or-divider">
-                OR
-            </div>
-
-            <div class="input-group">
-
-                <label>Paste Email Content</label>
-
-                <textarea
-                    name="email_text"
-                    placeholder="Paste email content here..."
-                ></textarea>
-
-            </div>
-
-            <button
-                type="submit"
-                class="analyze-button"
-            >
-                🔍 ANALYZE EMAIL
-            </button>
-
-        </form>
-
-    </section>
-
-    {% if error %}
-
-    <div class="error">
-
-        <strong>⚠️ Error:</strong>
-
-        {{ error }}
-
-    </div>
-
-    {% endif %}
-
-    {% if result %}
-
-    <div class="result">
-
-        <div class="section-header">
-
-            <h2>
-                📊 Analysis Result
-            </h2>
-
-            <p>
-                AI-powered email security analysis
-            </p>
-
-        </div>
-
-        <div class="cards">
-
-            <div class="card">
-
-                <h3>
-                    Threat Level
-                </h3>
-
-                <p class="threat-badge">
-                    {{ result.threat }}
-                </p>
-
-            </div>
-
-            <div class="card">
-
-                <h3>
-                    ML Prediction
-                </h3>
-
-                <p>
-                    {{ result.prediction }}
-                </p>
-
-            </div>
-
-            <div class="card">
-
-                <h3>
-                    Confidence
-                </h3>
-
-                <p>
-                    {{ result.confidence }}%
-                </p>
-
-            </div>
-
-            <div class="card risk-card">
-
-                <h3>
-                    Risk Score
-                </h3>
-
-                <div
-                    class="risk-gauge"
-                    style="--risk: {{ result.risk_score }}%;"
-                >
-
-                    <div class="risk-gauge-inner">
-
-                        <span class="risk-number">
-                            {{ result.risk_score }}
-                        </span>
-
-                        <span class="risk-label">
-                            / 100
-                        </span>
-
-                    </div>
-
+    <div class="app-layout">
+        <!-- ============================================================
+             LEFT SIDEBAR NAVIGATION
+             ============================================================ -->
+        <aside class="sidebar">
+            <div class="brand-section">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v7.62z"/></svg>
                 </div>
-
-                {% if result.risk_score >= 70 %}
-
-                <p class="risk-status high">
-                    🔴 HIGH RISK
-                </p>
-
-                {% elif result.risk_score >= 40 %}
-
-                <p class="risk-status medium">
-                    🟠 MEDIUM RISK
-                </p>
-
-                {% else %}
-
-                <p class="risk-status low">
-                    🟢 LOW RISK
-                </p>
-
-                {% endif %}
-
-            </div>
-
-        </div>
-
-        <section class="analysis-section risk-reasons-section">
-
-            <div class="section-header">
-
-                <h2>
-                    🧠 Why Is This Email Risky?
-                </h2>
-
-                <p>
-                    Evidence and signals detected by the AI analysis engine.
-                </p>
-
-            </div>
-
-            {% if result.risk_reasons %}
-
-            <div class="risk-reasons-list">
-
-                {% for reason in result.risk_reasons %}
-
-                <div class="risk-reason">
-
-                    <span class="reason-icon">
-                        ⚠
-                    </span>
-
-                    <span>
-                        {{ reason }}
-                    </span>
-
-                </div>
-
-                {% endfor %}
-
-            </div>
-
-            {% else %}
-
-            <div class="empty-message">
-
-                ✅ No specific risk indicators detected.
-
-            </div>
-
-            {% endif %}
-
-        </section>
-
-<section class="analysis-section ml-performance-section">
-
-    <div class="section-header">
-
-        <h2>
-            🤖 ML Model Performance
-        </h2>
-
-        <p>
-            Performance of the AI email threat detection model
-            on the evaluation dataset.
-        </p>
-
-    </div>
-
-    <div class="ml-accuracy-card">
-
-        <div class="accuracy-content">
-
-            <span class="accuracy-title">
-                Model Accuracy
-            </span>
-
-            <span class="accuracy-value">
-                {{ model_metrics.accuracy }}%
-            </span>
-
-            <span class="accuracy-description">
-                Overall classification accuracy
-            </span>
-
-        </div>
-
-    </div>
-
-    <div class="ml-class-grid">
-
-        <div class="ml-class-card safe-model-card">
-
-            <div class="ml-class-title">
-                🟢 Safe
-            </div>
-
-            <div class="metric-row">
-
-                <span>Precision</span>
-
-                <strong>
-                    {{ model_metrics.classes.safe.precision }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Recall</span>
-
-                <strong>
-                    {{ model_metrics.classes.safe.recall }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>F1 Score</span>
-
-                <strong>
-                    {{ model_metrics.classes.safe.f1_score }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Samples</span>
-
-                <strong>
-                    {{ model_metrics.classes.safe.support }}
-                </strong>
-
-            </div>
-
-        </div>
-
-        <div class="ml-class-card spam-model-card">
-
-            <div class="ml-class-title">
-                🟠 Spam
-            </div>
-
-            <div class="metric-row">
-
-                <span>Precision</span>
-
-                <strong>
-                    {{ model_metrics.classes.spam.precision }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Recall</span>
-
-                <strong>
-                    {{ model_metrics.classes.spam.recall }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>F1 Score</span>
-
-                <strong>
-                    {{ model_metrics.classes.spam.f1_score }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Samples</span>
-
-                <strong>
-                    {{ model_metrics.classes.spam.support }}
-                </strong>
-
-            </div>
-
-        </div>
-
-        <div class="ml-class-card phishing-model-card">
-
-            <div class="ml-class-title">
-                🔴 Phishing
-            </div>
-
-            <div class="metric-row">
-
-                <span>Precision</span>
-
-                <strong>
-                    {{ model_metrics.classes.phishing.precision }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Recall</span>
-
-                <strong>
-                    {{ model_metrics.classes.phishing.recall }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>F1 Score</span>
-
-                <strong>
-                    {{ model_metrics.classes.phishing.f1_score }}%
-                </strong>
-
-            </div>
-
-            <div class="metric-row">
-
-                <span>Samples</span>
-
-                <strong>
-                    {{ model_metrics.classes.phishing.support }}
-                </strong>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="confusion-section">
-
-        <h3>
-            📊 Confusion Matrix
-        </h3>
-
-        <p class="matrix-description">
-            Shows how the model classified Safe, Spam and
-            Phishing emails during testing.
-        </p>
-
-        <div class="confusion-table-wrapper">
-
-            <table class="confusion-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Actual / Predicted
-                        </th>
-
-                        <th>
-                            Safe
-                        </th>
-
-                        <th>
-                            Spam
-                        </th>
-
-                        <th>
-                            Phishing
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    <tr>
-
-                        <th>
-                            Safe
-                        </th>
-
-                        <td class="matrix-good">
-                            {{ model_metrics.confusion_matrix[0][0] }}
-                        </td>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[0][1] }}
-                        </td>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[0][2] }}
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th>
-                            Spam
-                        </th>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[1][0] }}
-                        </td>
-
-                        <td class="matrix-good">
-                            {{ model_metrics.confusion_matrix[1][1] }}
-                        </td>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[1][2] }}
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th>
-                            Phishing
-                        </th>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[2][0] }}
-                        </td>
-
-                        <td>
-                            {{ model_metrics.confusion_matrix[2][1] }}
-                        </td>
-
-                        <td class="matrix-good">
-                            {{ model_metrics.confusion_matrix[2][2] }}
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-</section>
-
-        <section class="analysis-section">
-
-            <h2>
-                🔎 Email Forensics
-            </h2>
-
-            <div class="forensics">
-
-                <div class="forensic-row">
-
-                    <strong>From:</strong>
-
-                    <span>
-                        {{ result.forensics.from }}
-                    </span>
-
-                </div>
-
-                <div class="forensic-row">
-
-                    <strong>Reply-To:</strong>
-
-                    <span>
-                        {{ result.forensics.reply_to }}
-                    </span>
-
-                </div>
-
-                <div class="forensic-row">
-
-                    <strong>Return-Path:</strong>
-
-                    <span>
-                        {{ result.forensics.return_path }}
-                    </span>
-
-                </div>
-
-                <div class="forensic-row">
-
-                    <strong>Subject:</strong>
-
-                    <span>
-                        {{ result.forensics.subject }}
-                    </span>
-
-                </div>
-
-                <div class="forensic-row">
-
-                    <strong>Message-ID:</strong>
-
-                    <span>
-                        {{ result.forensics.message_id }}
-                    </span>
-
-                </div>
-
-                <hr>
-
-               <div class="authentication-grid">
-
-    <div class="auth-card">
-
-        <div class="auth-title">
-            🛡️ SPF
-        </div>
-
-        {% if result.forensics.spf|lower == "pass" %}
-
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
-
-        <p>
-            Sender IP is authorized by the domain.
-        </p>
-
-        {% elif result.forensics.spf|lower == "fail" %}
-
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
-
-        <p>
-            Sender authentication failed.
-        </p>
-
-        {% else %}
-
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
-
-        <p>
-            SPF authentication result was not found.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-    <div class="auth-card">
-
-        <div class="auth-title">
-            🔐 DKIM
-        </div>
-
-        {% if result.forensics.dkim|lower == "pass" %}
-
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
-
-        <p>
-            Email signature verification passed.
-        </p>
-
-        {% elif result.forensics.dkim|lower == "fail" %}
-
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
-
-        <p>
-            Email signature verification failed.
-        </p>
-
-        {% else %}
-
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
-
-        <p>
-            DKIM authentication result was not found.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-    <div class="auth-card">
-
-        <div class="auth-title">
-            📋 DMARC
-        </div>
-
-        {% if result.forensics.dmarc|lower == "pass" %}
-
-        <div class="auth-status auth-pass">
-            🟢 PASS
-        </div>
-
-        <p>
-            Domain alignment and authentication passed.
-        </p>
-
-        {% elif result.forensics.dmarc|lower == "fail" %}
-
-        <div class="auth-status auth-fail">
-            🔴 FAIL
-        </div>
-
-        <p>
-            Domain authentication or alignment failed.
-        </p>
-
-        {% else %}
-
-        <div class="auth-status auth-unknown">
-            ⚪ NOT FOUND
-        </div>
-
-        <p>
-            DMARC authentication result was not found.
-        </p>
-
-        {% endif %}
-
-    </div>
-
-</div>
-
-            </div>
-
-        </section>
-
-        <section class="analysis-section">
-
-            <h2>
-                ⚠️ Forensic Indicators
-            </h2>
-
-            <div class="indicator-box">
-
-                {% if result.forensics.indicators %}
-
-                <ul>
-
-                    {% for indicator in result.forensics.indicators %}
-
-                    <li>
-                        {{ indicator }}
-                    </li>
-
-                    {% endfor %}
-
-                </ul>
-
-                {% else %}
-
-                <p>
-                    ✅ No major forensic indicators detected.
-                </p>
-
-                {% endif %}
-
-            </div>
-
-        </section>
-
-        <section class="analysis-section">
-
-            <h2>
-                🔗 URL Analysis
-            </h2>
-
-            {% if result.urls %}
-
-            {% for url in result.urls %}
-
-            <div class="url-box">
-
-                <div class="url-row">
-
-                    <strong>URL:</strong>
-
-                    <span>
-                        {{ url.url }}
-                    </span>
-
-                </div>
-
-                <div class="url-row">
-
-                    <strong>Domain:</strong>
-
-                    <span>
-                        {{ url.domain }}
-                    </span>
-
-                </div>
-
-                <div class="url-row">
-
-                    <strong>Risk Score:</strong>
-
-                    <span>
-                        {{ url.risk_score }}
-                    </span>
-
-                </div>
-
-                <div class="url-row">
-
-                    <strong>Suspicious:</strong>
-
-                    <span>
-                        {{ url.suspicious }}
-                    </span>
-
-                </div>
-
-                {% if url.indicators %}
-
-                <div class="url-indicators">
-
-                    <strong>
-                        Indicators:
-                    </strong>
-
-                    <ul>
-
-                        {% for indicator in url.indicators %}
-
-                        <li>
-                            {{ indicator }}
-                        </li>
-
-                        {% endfor %}
-
-                    </ul>
-
-                </div>
-
-                {% endif %}
-
-            </div>
-
-            {% endfor %}
-
-            {% else %}
-
-            <div class="empty-message">
-                No URLs detected.
-            </div>
-
-            {% endif %}
-
-        </section>
-
-        <section class="analysis-section attachment-section">
-
-            <div class="section-header">
-                <h2>📎 Attachment Analysis</h2>
-                <p>Automatically analyzed email attachments and file-risk indicators.</p>
-            </div>
-
-            {% if result.attachments and result.attachments.has_attachments %}
-
-            <div class="attachment-summary-grid">
-                <div class="attachment-summary-card">
-                    <span>Total Attachments</span>
-                    <strong>{{ result.attachments.attachment_count }}</strong>
-                </div>
-                <div class="attachment-summary-card">
-                    <span>Suspicious</span>
-                    <strong>{{ result.attachments.suspicious_count }}</strong>
-                </div>
-                <div class="attachment-summary-card">
-                    <span>High Risk</span>
-                    <strong>{{ result.attachments.high_risk_count }}</strong>
-                </div>
-                <div class="attachment-summary-card">
-                    <span>Overall Risk</span>
-                    <strong class="attachment-risk-{{ result.attachments.overall_risk|lower }}">{{ result.attachments.overall_risk }}</strong>
+                <div class="brand-info">
+                    <h1>SIH26106</h1>
+                    <span>Forensic AI</span>
                 </div>
             </div>
 
-            <div class="attachment-list">
-                {% for attachment in result.attachments.attachments %}
-                <div class="attachment-card attachment-{{ attachment.risk|lower }}">
-                    <div class="attachment-card-header">
-                        <div>
-                            <div class="attachment-filename">📄 {{ attachment.filename }}</div>
-                            <div class="attachment-meta">{{ attachment.mime_type }} · {{ attachment.size }} bytes</div>
-                        </div>
-                        <div class="attachment-risk-badge">{{ attachment.risk }} · {{ attachment.risk_score }}/100</div>
-                    </div>
-
-                    <div class="attachment-detail-grid">
-                        <div><span>Extension</span><strong>{{ attachment.extension or 'None' }}</strong></div>
-                        <div><span>Double Extension</span><strong>{{ 'YES' if attachment.double_extension else 'NO' }}</strong></div>
-                        <div><span>Suspicious Keywords</span><strong>{{ attachment.suspicious_keywords|join(', ') if attachment.suspicious_keywords else 'None' }}</strong></div>
-                    </div>
-
-                    {% if attachment.indicators %}
-                    <div class="attachment-indicators">
-                        {% for indicator in attachment.indicators %}
-                        <div>⚠ {{ indicator }}</div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-
-            {% else %}
-            <div class="empty-message">No email attachments detected.</div>
-            {% endif %}
-
-        </section>
-
-        <section class="analysis-section timeline-section">
-            <div class="section-header">
-                <h2>🕐 Forensic Timeline</h2>
-                <p>Analysis events recorded during the local forensic processing pipeline.</p>
-            </div>
-
-            {% if result.timeline %}
-            <div class="forensic-timeline">
-                {% for event in result.timeline %}
-                <div class="timeline-item">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-content">
-                        <div class="timeline-topline">
-                            <span class="timeline-time">{{ event.timestamp }}</span>
-                            <span class="timeline-category">{{ event.category }}</span>
-                        </div>
-                        <div class="timeline-event">{{ event.event }}</div>
-                        <div class="timeline-description">{{ event.description }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <div class="timeline-note">Note: generated timestamps indicate when this analysis pipeline processed each step; they are not proof of attacker activity time.</div>
-            {% else %}
-            <div class="empty-message">No forensic timeline data available.</div>
-            {% endif %}
-        </section>
-
-        <section class="analysis-section ioc-section">
-
-            <div class="section-header">
-                <h2>🔎 Indicators of Compromise (IOCs)</h2>
-                <p>Automatically extracted forensic indicators from the analyzed email.</p>
-            </div>
-
-            {% if result.iocs %}
-            <div class="ioc-grid">
-
-                <div class="ioc-card">
-                    <div class="ioc-card-title">🌐 URLs</div>
-                    <div class="ioc-count">{{ result.iocs.url_count }}</div>
-                    {% if result.iocs.urls %}
-                        {% for item in result.iocs.urls %}
-                        <div class="ioc-item">{{ item }}</div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="ioc-empty">None detected</div>
-                    {% endif %}
-                </div>
-
-                <div class="ioc-card">
-                    <div class="ioc-card-title">🖥️ IP Addresses</div>
-                    <div class="ioc-count">{{ result.iocs.ip_count }}</div>
-                    {% if result.iocs.ips %}
-                        {% for item in result.iocs.ips %}
-                        <div class="ioc-item">{{ item }}</div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="ioc-empty">None detected</div>
-                    {% endif %}
-                </div>
-
-                <div class="ioc-card">
-                    <div class="ioc-card-title">📧 Email Addresses</div>
-                    <div class="ioc-count">{{ result.iocs.email_count }}</div>
-                    {% if result.iocs.emails %}
-                        {% for item in result.iocs.emails %}
-                        <div class="ioc-item">{{ item }}</div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="ioc-empty">None detected</div>
-                    {% endif %}
-                </div>
-
-                <div class="ioc-card">
-                    <div class="ioc-card-title">🌍 Domains</div>
-                    <div class="ioc-count">{{ result.iocs.domain_count }}</div>
-                    {% if result.iocs.domains %}
-                        {% for item in result.iocs.domains %}
-                        <div class="ioc-item">{{ item }}</div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="ioc-empty">None detected</div>
-                    {% endif %}
-                </div>
-
-            </div>
-            {% else %}
-                <div class="empty-message">No IOC data available.</div>
-            {% endif %}
-
-        </section>
-
-        <section class="analysis-section">
-
-            <h2>
-                🌐 IP Analysis
-            </h2>
-
-            {% if result.ips %}
-
-            <div class="ip-list">
-
-                {% for ip in result.ips %}
-
-                <div class="ip-box">
-
-                    <strong>
-                        IP Address:
-                    </strong>
-
-                    <span>
-                        {{ ip }}
-                    </span>
-
-                </div>
-
-                {% endfor %}
-
-            </div>
-
-            {% else %}
-
-            <div class="empty-message">
-                No IP addresses detected.
-            </div>
-
-            {% endif %}
-
-        </section>
-
-        <section class="analysis-section">
-
-            <h2>
-                🌍 IP Geolocation
-            </h2>
-
-            {% if result.ip_results %}
-
-            {% for ip in result.ip_results %}
-
-            <div class="geo-box">
-
-                <div class="geo-row">
-
-                    <strong>IP:</strong>
-
-                    <span>
-                        {{ ip.ip }}
-                    </span>
-
-                </div>
-
-                <div class="geo-row">
-
-                    <strong>Type:</strong>
-
-                    <span>
-                        {{ ip.type }}
-                    </span>
-
-                </div>
-
-                <div class="geo-row">
-
-                    <strong>Country:</strong>
-
-                    <span>
-                        {{ ip.country }}
-                    </span>
-
-                </div>
-
-                <div class="geo-row">
-
-                    <strong>City:</strong>
-
-                    <span>
-                        {{ ip.city }}
-                    </span>
-
-                </div>
-
-                <div class="geo-row">
-
-                    <strong>Region:</strong>
-
-                    <span>
-                        {{ ip.region }}
-                    </span>
-
-                </div>
-
-                <div class="geo-row">
-
-                    <strong>Organization:</strong>
-
-                    <span>
-                        {{ ip.organization }}
-                    </span>
-
-                </div>
-
-                {% if ip.latitude is defined
-                      and ip.longitude is defined
-                      and ip.latitude is not none
-                      and ip.longitude is not none %}
-
-                <div class="geo-row">
-
-                    <strong>
-                        Coordinates:
-                    </strong>
-
-                    <span>
-                        {{ ip.latitude }},
-                        {{ ip.longitude }}
-                    </span>
-
-                </div>
-
-                {% endif %}
-
-            </div>
-
-            {% endfor %}
-
-            {% else %}
-
-            <div class="empty-message">
-
-                No IP addresses found in email headers.
-
-            </div>
-
-            {% endif %}
-
-        </section>
-
-        <section class="analysis-section">
-
-            <h2>
-                🗺️ Geolocation Map
-            </h2>
-
-            <div id="map"></div>
-
-            <script>
-
-                document.addEventListener(
-                    "DOMContentLoaded",
-                    function () {
-
-                        const defaultLatitude = 20.5937;
-
-                        const defaultLongitude = 78.9629;
-
-                        const map = L.map(
-                            "map"
-                        ).setView(
-                            [
-                                defaultLatitude,
-                                defaultLongitude
-                            ],
-                            4
-                        );
-
-                        L.tileLayer(
-                            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            {
-                                maxZoom: 19,
-                                attribution:
-                                    "&copy; OpenStreetMap contributors"
-                            }
-                        ).addTo(map);
-
-                        const ipLocations = [];
-
-                        {% for ip in result.ip_results %}
-
-                            {% if ip.latitude is defined
-                                  and ip.longitude is defined
-                                  and ip.latitude is not none
-                                  and ip.longitude is not none %}
-
-                            ipLocations.push({
-
-                                ip:
-                                    "{{ ip.ip | default('Unknown') }}",
-
-                                latitude:
-                                    {{ ip.latitude }},
-
-                                longitude:
-                                    {{ ip.longitude }},
-
-                                country:
-                                    "{{ ip.country | default('Unknown') }}",
-
-                                city:
-                                    "{{ ip.city | default('Unknown') }}",
-
-                                organization:
-                                    "{{ ip.organization | default('Unknown') }}"
-
-                            });
-
-                            {% endif %}
-
-                        {% endfor %}
-
-                        console.log(
-                            "IP Locations:",
-                            ipLocations
-                        );
-
-                        ipLocations.forEach(
-                            function (location) {
-
-                                const marker =
-                                    L.marker(
-                                        [
-                                            location.latitude,
-                                            location.longitude
-                                        ]
-                                    ).addTo(map);
-
-                                marker.bindPopup(
-
-                                    "<b>🌐 IP:</b> " +
-                                    location.ip +
-
-                                    "<br><b>🌍 Country:</b> " +
-                                    location.country +
-
-                                    "<br><b>🏙️ City:</b> " +
-                                    location.city +
-
-                                    "<br><b>🏢 Organization:</b> " +
-                                    location.organization
-
-                                );
-
-                            }
-                        );
-
-                        if (
-                            ipLocations.length > 0
-                        ) {
-
-                            const bounds = [];
-
-                            ipLocations.forEach(
-                                function (location) {
-
-                                    bounds.push(
-                                        [
-                                            location.latitude,
-                                            location.longitude
-                                        ]
-                                    );
-
-                                }
-                            );
-
-                            map.fitBounds(
-                                bounds,
-                                {
-                                    padding:
-                                        [
-                                            30,
-                                            30
-                                        ]
-                                }
-                            );
-
-                        }
-
-                        if (
-                            ipLocations.length === 0
-                        ) {
-
-                            L.popup()
-
-                                .setLatLng(
-                                    [
-                                        defaultLatitude,
-                                        defaultLongitude
-                                    ]
-                                )
-
-                                .setContent(
-
-                                    "<b>⚠️ No public IP location available</b>" +
-                                    "<br>" +
-                                    "No geolocation coordinates were found."
-
-                                )
-
-                                .openOn(map);
-
-                        }
-
-                    }
-                );
-
-            </script>
-
-        </section>
-
-        <section class="pdf-section">
-
-            <div class="pdf-content">
-
-                <h2>
-                    📄 Forensic Report
-                </h2>
-
-                <p>
-                    Generate a complete forensic analysis report
-                    containing ML detection, URL analysis,
-                    IP geolocation, email headers and
-                    threat indicators.
-                </p>
-
-                <a
-                    href="{{ url_for('generate_report') }}"
-                    class="pdf-button"
-                >
-                    📄 Generate PDF Report
+            <nav class="nav-menu">
+                <a class="nav-item active" id="nav-dashboard">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    Dashboard
                 </a>
+                <a class="nav-item" id="btn-open-analyze">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    Analyze Email
+                </a>
+                <a class="nav-item" id="nav-history">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Investigation History
+                </a>
+                <a class="nav-item btn-export-report" id="nav-reports">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Forensic PDF Report
+                </a>
+            </nav>
 
+            <div class="sidebar-footer">
+                <div class="status-badge-container" id="supabase-status-pill" title="Click to manage Supabase Cloud Connection">
+                    <div class="status-indicator">
+                        <div class="status-dot {% if supabase_active %}active{% else %}sqlite{% endif %}" id="status-dot"></div>
+                        <span id="status-text">{% if supabase_active %}Supabase Connected{% else %}Local SQLite Mode{% endif %}</span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <a class="nav-item" id="nav-settings" style="padding:8px 12px;font-size:12px;">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    Settings & Supabase
+                </a>
             </div>
+        </aside>
 
-        </section>
+        <!-- ============================================================
+             MAIN CONTENT AREA
+             ============================================================ -->
+        <div class="main-wrapper">
+            <!-- TOP BAR -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="header-title">Dashboard</h2>
+                    <div class="preset-selector-wrapper">
+                        <label>Demo Preset:</label>
+                        <select id="preset-select" class="preset-select">
+                            <option value="">-- Quick Load Case --</option>
+                            {% for p in presets %}
+                            <option value="{{ p.id }}">{{ p.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
+                <div class="header-right">
+                    <button class="btn btn-primary" onclick="document.getElementById('modal-analyze').classList.add('active');">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload / Analyze
+                    </button>
+                    <button class="btn btn-report btn-export-report">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export Report
+                    </button>
+                    <div class="user-profile">
+                        <div class="user-avatar">JD</div>
+                        <div class="user-meta">
+                            <span class="user-name">John Doe</span>
+                            <span class="user-role">SecOps Lead</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DASHBOARD CONTENT (MATCHING INSPIRATION IMAGE 3) -->
+            <main class="content-area">
+                <div class="dashboard-grid">
+
+                    <!-- 1. THREAT SCORE GAUGE (IMAGE 3) -->
+                    <div class="card col-4 threat-gauge-card">
+                        <div class="card-title" style="width:100%;">
+                            <span>Threat Score</span>
+                            <span class="card-title-icon" title="Ensemble risk score combining ML prediction, header anomalies, URLs, and attachment risks">ⓘ</span>
+                        </div>
+                        <div class="gauge-container">
+                            <svg class="gauge-svg" viewBox="0 0 200 110">
+                                <defs>
+                                    <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#10B981" />
+                                        <stop offset="50%" stop-color="#F59E0B" />
+                                        <stop offset="100%" stop-color="#EF4444" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Background Arc -->
+                                <path class="gauge-bg-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                                <!-- Dynamic Progress Arc -->
+                                <path id="gauge-progress-arc" class="gauge-progress-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
+                            </svg>
+                            <div class="gauge-center-content">
+                                <div class="gauge-score-value"><span id="gauge-score">{% if result %}{{ result.risk_score }}{% else %}87{% endif %}</span><span>/100</span></div>
+                                <div id="gauge-badge" class="threat-level-badge {% if result and result.risk_score < 40 %}low{% elif result and result.risk_score < 70 %}medium{% else %}high{% endif %}">
+                                    {% if result %}{{ result.threat }}{% else %}HIGH{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gauge-legend">
+                            <span>Low</span>
+                            <span>Threat Level</span>
+                            <span>High</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. SENDER & RECIPIENT CARDS (IMAGE 3) -->
+                    <div class="card col-4">
+                        <div class="card-title">
+                            <span>Sender Identity</span>
+                            <span class="card-title-icon" title="Originating sender verification">ⓘ</span>
+                        </div>
+                        <div class="meta-card-value" id="card-sender">
+                            {% if result and result.forensics and result.forensics.from != 'Not Found' %}
+                                {{ result.forensics.from }}
+                            {% elif result and result.sender %}
+                                {{ result.sender }}
+                            {% else %}
+                                accounts@paypa1-security.com
+                            {% endif %}
+                        </div>
+                        <div class="meta-card-sub" id="card-sender-sub">Direct RFC 5322 Mail Address</div>
+                        
+                        <div style="margin-top:16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                            <div class="card-title">Recipient</div>
+                            <div class="meta-card-value" id="card-recipient">
+                                {% if result and result.forensics and result.forensics.to %}
+                                    {{ result.forensics.to }}
+                                {% elif result and result.receiver %}
+                                    {{ result.receiver }}
+                                {% else %}
+                                    finance.dept@company.com
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. DOMAIN & URL CARD (IMAGE 3) -->
+                    <div class="card col-4">
+                        <div class="card-title">
+                            <span>Domain Analysis</span>
+                            <span class="card-title-icon" title="Extracted sender & link domains">ⓘ</span>
+                        </div>
+                        <div class="meta-card-value" id="card-domain">
+                            {% if result and result.iocs and result.iocs.domains and result.iocs.domains|length > 0 %}
+                                {{ result.iocs.domains[0] }}
+                            {% else %}
+                                paypa1-security.com
+                            {% endif %}
+                        </div>
+                        <div class="meta-card-tag tag-warning" id="card-domain-tag">Typosquatting Risk Detected</div>
+
+                        <div style="margin-top:16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                            <div class="card-title">Extracted Suspicious URL</div>
+                            <div class="meta-card-value" id="card-url" style="color:var(--accent-cyan);font-size:12px;">
+                                {% if result and result.urls and result.urls|length > 0 %}
+                                    {{ result.urls[0].url }}
+                                {% else %}
+                                    http://185.220.101.1/downloads/invoice.exe
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. PHISHING PROBABILITY & URI WAVE (IMAGE 3) -->
+                    <div class="card col-4">
+                        <div class="prob-card-header">
+                            <span class="prob-card-title">Phishing Probability</span>
+                            <span class="prob-card-value" id="phishing-prob-value">{% if result %}{{ result.phishing_probability }}{% else %}92{% endif %}%</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill" id="phishing-prob-fill" style="width: {% if result %}{{ result.phishing_probability }}{% else %}92{% endif %}%;"></div>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <div class="card-title">
+                                <span>URI Threat Spectrum</span>
+                                <span class="card-title-icon">ⓘ</span>
+                            </div>
+                            <div class="wave-canvas-wrapper" id="waveform-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- 5. THREAT INDICATORS PILLS (IMAGE 3) -->
+                    <div class="card col-4">
+                        <div class="card-title">
+                            <span>Threat Indicators</span>
+                            <span class="card-title-icon" title="Triggered heuristic rules">ⓘ</span>
+                        </div>
+                        <div class="indicators-list" id="threat-indicators-list">
+                            {% if result and result.threat_indicators %}
+                                {% for ind in result.threat_indicators %}
+                                <div class="indicator-pill {% if ind.level == 'warning' %}warning{% elif ind.level == 'success' %}success{% endif %}">
+                                    <span class="indicator-icon">{% if ind.level == 'success' %}🛡️{% elif ind.level == 'warning' %}⚠️{% else %}🔴{% endif %}</span>
+                                    <span>{{ ind.label }}</span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="indicator-pill">
+                                    <span class="indicator-icon">🔴</span>
+                                    <span>SPF Sender Verification Failed</span>
+                                </div>
+                                <div class="indicator-pill">
+                                    <span class="indicator-icon">🔴</span>
+                                    <span>From / Reply-To Domain Mismatch</span>
+                                </div>
+                                <div class="indicator-pill">
+                                    <span class="indicator-icon">🔴</span>
+                                    <span>Raw IP Address in URL</span>
+                                </div>
+                                <div class="indicator-pill warning">
+                                    <span class="indicator-icon">⚠️</span>
+                                    <span>Suspicious Executable Payload Attachment</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 6. IP INTELLIGENCE & LEAFLET MAP (IMAGE 3) -->
+                    <div class="card col-4">
+                        <div class="card-title">
+                            <span>IP Intelligence & Geolocation</span>
+                            <span class="card-title-icon">ⓘ</span>
+                        </div>
+                        <div class="geo-container">
+                            <div class="geo-meta">
+                                <div class="geo-row">
+                                    <span class="geo-label">Target IP:</span>
+                                    <span class="geo-val" id="geo-ip">{% if result and result.ips and result.ips|length > 0 %}{{ result.ips[0] }}{% else %}185.220.101.1{% endif %}</span>
+                                </div>
+                                <div class="geo-row">
+                                    <span class="geo-label">Country:</span>
+                                    <span class="geo-val" id="geo-country">{% if result and result.ip_results and result.ip_results|length > 0 %}{{ result.ip_results[0].country }}{% else %}Netherlands{% endif %}</span>
+                                </div>
+                                <div class="geo-row">
+                                    <span class="geo-label">Provider/ASN:</span>
+                                    <span class="geo-val" id="geo-org" style="font-size:11px;">{% if result and result.ip_results and result.ip_results|length > 0 %}{{ result.ip_results[0].organization or 'AS24940 Hetzner' }}{% else %}Tor Relay / Bulletproof{% endif %}</span>
+                                </div>
+                                <div class="geo-disclaimer">Approximate IP Geolocation (ip-api.com)</div>
+                            </div>
+                            <div id="map"></div>
+                        </div>
+                    </div>
+
+                    <!-- 7. FORENSIC TIMELINE (IMAGE 3) -->
+                    <div class="card col-5">
+                        <div class="card-title">
+                            <span>Forensic Timeline</span>
+                            <span class="card-title-icon" title="Reconstructed email relay and event sequence">ⓘ</span>
+                        </div>
+                        <div class="timeline-container" id="forensic-timeline-list">
+                            {% if result and result.timeline %}
+                                {% for event in result.timeline %}
+                                <div class="timeline-item">
+                                    <div class="timeline-dot {% if 'fail' in event.description|lower or 'suspicious' in event.description|lower or 'high' in event.description|lower %}danger{% endif %}"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-time">{{ event.timestamp.split(' ')[1] if ' ' in event.timestamp else event.timestamp }}</span>
+                                            <span class="timeline-event-name">{{ event.event }}</span>
+                                        </div>
+                                        <p class="timeline-desc">{{ event.description }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-time">09:14 AM</span>
+                                            <span class="timeline-event-name">Email Relayed from Host</span>
+                                        </div>
+                                        <p class="timeline-desc">Originated from 185.220.101.1 via suspicious-bulletproof.nl relay</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot danger"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-time">09:14 AM</span>
+                                            <span class="timeline-event-name">Authentication Check Failed</span>
+                                        </div>
+                                        <p class="timeline-desc">SPF verification failed; DMARC policy validation rejected</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot danger"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-time">09:15 AM</span>
+                                            <span class="timeline-event-name">Payload Extraction</span>
+                                        </div>
+                                        <p class="timeline-desc">Identified direct binary download link (invoice_statement.exe)</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-time">09:15 AM</span>
+                                            <span class="timeline-event-name">AI Classification Completed</span>
+                                        </div>
+                                        <p class="timeline-desc">Model confidence 92% PHISHING with Critical threat rating</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 8. RELATIONSHIP GRAPH (IMAGE 3) -->
+                    <div class="card col-7">
+                        <div class="graph-card-header">
+                            <div class="card-title" style="margin:0;">
+                                <span>Relationship Graph</span>
+                                <span class="card-title-icon" title="Entity correlation map">ⓘ</span>
+                            </div>
+                            <button class="btn btn-report btn-export-report" style="padding:6px 14px;font-size:12px;">
+                                Export Forensic Report
+                            </button>
+                        </div>
+                        <div class="graph-canvas-container">
+                            <svg id="graph-svg" class="graph-svg"></svg>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
     </div>
 
-    {% endif %}
+    <!-- ============================================================
+         ANALYZE EMAIL MODAL
+         ============================================================ -->
+    <div class="modal-backdrop" id="modal-analyze">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>🔍 Ingest & Analyze Email</h2>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <form id="form-analyze-email" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- File Upload Dropzone -->
+                    <div class="form-group">
+                        <label>Upload Raw Email (.EML File)</label>
+                        <div class="dropzone" id="file-dropzone">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <p><strong>Click to browse</strong> or drag & drop .eml file here</p>
+                            <input type="file" id="email-file-input" name="email_file" accept=".eml" style="display:none;">
+                        </div>
+                    </div>
 
-</div>
+                    <div class="or-divider">
+                        <span>OR PASTE RAW HEADERS & BODY</span>
+                    </div>
 
-<footer class="footer">
+                    <!-- Raw Textarea -->
+                    <div class="form-group">
+                        <label>Raw Email Headers & Text</label>
+                        <textarea class="form-textarea" name="email_text" placeholder="From: billing@...&#10;Subject: Urgent Invoice...&#10;&#10;Paste headers and email body here..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-modal-close">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Run Forensic Analysis</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <p>
-        🛡️ AI Email Threat Detector
-    </p>
+    <!-- ============================================================
+         INVESTIGATION HISTORY MODAL
+         ============================================================ -->
+    <div class="modal-backdrop" id="modal-history">
+        <div class="modal-box" style="max-width:850px;">
+            <div class="modal-header">
+                <h2>📋 Investigation History & Case Logs</h2>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Case ID</th>
+                            <th>Timestamp</th>
+                            <th>Sender</th>
+                            <th>Threat Score</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        <!-- Loaded dynamically via dashboard.js -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-modal-close">Close</button>
+            </div>
+        </div>
+    </div>
 
-    <p>
-        AI Email Threat Detection + Geolocation + Forensics
-    </p>
+    <!-- ============================================================
+         SETTINGS & SUPABASE MODAL
+         ============================================================ -->
+    <div class="modal-backdrop" id="modal-settings">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>⚙️ Settings & Supabase Cloud Integration</h2>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <form id="form-supabase-settings">
+                <div class="modal-body">
+                    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+                        Connect to Supabase PostgreSQL to persist investigation history safely across Vercel serverless deploys.
+                    </p>
+                    <div class="form-group">
+                        <label>Supabase Project URL</label>
+                        <input type="text" id="supabase-url-input" class="form-input" placeholder="https://your-project.supabase.co">
+                    </div>
+                    <div class="form-group">
+                        <label>Supabase Anon / Service Role Key</label>
+                        <input type="password" id="supabase-key-input" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                    </div>
+                    <div style="margin-top:20px;padding:12px;background:rgba(6,182,212,0.06);border:1px solid var(--border-cyan);border-radius:8px;">
+                        <span style="font-size:12px;font-weight:600;color:var(--accent-cyan);">Database Setup Instructions:</span>
+                        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+                            Run the provided <code>supabase_schema.sql</code> script in your Supabase SQL Editor to create the tables.
+                        </p>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <button type="button" class="btn btn-secondary" id="btn-sync-supabase" style="width:100%;">
+                            🔄 Sync Local SQLite Cases to Supabase
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-modal-close">Close</button>
+                    <button type="submit" class="btn btn-primary">Save & Test Connection</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-</footer>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top:14px;font-size:14px;font-weight:600;color:var(--accent-cyan);">Running AI Analysis & Forensic Pipeline...</p>
+    </div>
 
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        window.INITIAL_RESULT = {{ result | tojson if result else 'null' }};
+    </script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>
