@@ -5,23 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Email Threat Detector</title>
 
-    <!-- CUSTOM CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <!-- LEAFLET CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-    <!-- LEAFLET JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+.task19-stats { margin: 22px 0; }
+.task19-stats h2 { text-align:center; margin-bottom:15px; }
+.task19-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.task19-risk { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; }
+.task19-card { background:#fff; padding:16px; border-radius:10px; text-align:center; box-shadow:0 3px 12px rgba(0,0,0,.08); }
+.task19-card h3 { margin:0 0 8px; font-size:14px; }
+.task19-num { font-size:28px; font-weight:700; }
+.task19-avg { margin-top:12px; padding:14px; text-align:center; background:#f8fafc; border-radius:10px; font-weight:600; }
+@media(max-width:700px) {
+    .task19-grid,.task19-risk { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:450px) {
+    .task19-grid,.task19-risk { grid-template-columns:1fr; }
+}
+</style>
+
 </head>
 
 <body>
 
 <div class="container">
-
-    <!-- ================================================== -->
-    <!-- HEADER -->
-    <!-- ================================================== -->
 
     <header class="header">
         <h1>🛡️ AI Email Threat Detector</h1>
@@ -30,9 +41,62 @@
         </p>
     </header>
 
-    <!-- ================================================== -->
-    <!-- EMAIL INPUT -->
-    <!-- ================================================== -->
+    <div style="text-align:center;margin:15px 0">
+        <a href="{{ url_for('investigation_history') }}"
+           style="display:inline-block;padding:10px 18px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-weight:bold">
+            📋 Investigation History
+        </a>
+    </div>
+
+
+    <!-- TASK 19: LIVE INVESTIGATION STATISTICS -->
+    <section class="task19-stats">
+        <h2>📊 Investigation Statistics</h2>
+
+        <div class="task19-grid">
+            <div class="task19-card">
+                <h3>📁 Total Cases</h3>
+                <div class="task19-num">{{ stats.total }}</div>
+            </div>
+
+            <div class="task19-card">
+                <h3>🎣 Phishing</h3>
+                <div class="task19-num">{{ stats.phishing }}</div>
+            </div>
+
+            <div class="task19-card">
+                <h3>🚨 Spam</h3>
+                <div class="task19-num">{{ stats.spam }}</div>
+            </div>
+
+            <div class="task19-card">
+                <h3>🛡️ Safe</h3>
+                <div class="task19-num">{{ stats.safe }}</div>
+            </div>
+        </div>
+
+        <div class="task19-risk">
+            <div class="task19-card">
+                <h3>🔴 High Risk</h3>
+                <div class="task19-num">{{ stats.high_risk }}</div>
+            </div>
+
+            <div class="task19-card">
+                <h3>🟠 Medium Risk</h3>
+                <div class="task19-num">{{ stats.medium_risk }}</div>
+            </div>
+
+            <div class="task19-card">
+                <h3>🟢 Low Risk</h3>
+                <div class="task19-num">{{ stats.low_risk }}</div>
+            </div>
+        </div>
+
+        <div class="task19-avg">
+            📈 Average Risk Score:
+            <strong>{{ stats.average_risk }} / 100</strong>
+        </div>
+    </section>
 
     <section class="input-section">
 
@@ -78,10 +142,6 @@
 
     </section>
 
-    <!-- ================================================== -->
-    <!-- ERROR -->
-    <!-- ================================================== -->
-
     {% if error %}
 
     <div class="error">
@@ -94,17 +154,9 @@
 
     {% endif %}
 
-    <!-- ================================================== -->
-    <!-- ANALYSIS RESULT -->
-    <!-- ================================================== -->
-
     {% if result %}
 
     <div class="result">
-
-        <!-- ================================================== -->
-        <!-- RESULT HEADER -->
-        <!-- ================================================== -->
 
         <div class="section-header">
 
@@ -118,13 +170,7 @@
 
         </div>
 
-        <!-- ================================================== -->
-        <!-- RESULT CARDS -->
-        <!-- ================================================== -->
-
         <div class="cards">
-
-            <!-- THREAT LEVEL -->
 
             <div class="card">
 
@@ -138,8 +184,6 @@
 
             </div>
 
-            <!-- ML PREDICTION -->
-
             <div class="card">
 
                 <h3>
@@ -152,8 +196,6 @@
 
             </div>
 
-            <!-- CONFIDENCE -->
-
             <div class="card">
 
                 <h3>
@@ -165,8 +207,6 @@
                 </p>
 
             </div>
-
-            <!-- RISK SCORE -->
 
             <div class="card risk-card">
 
@@ -217,10 +257,6 @@
 
         </div>
 
-        <!-- ================================================== -->
-        <!-- WHY IS THIS EMAIL RISKY -->
-        <!-- ================================================== -->
-
         <section class="analysis-section risk-reasons-section">
 
             <div class="section-header">
@@ -269,10 +305,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-<!-- ML MODEL PERFORMANCE -->
-<!-- ================================================== -->
-
 <section class="analysis-section ml-performance-section">
 
     <div class="section-header">
@@ -287,8 +319,6 @@
         </p>
 
     </div>
-
-    <!-- OVERALL ACCURACY -->
 
     <div class="ml-accuracy-card">
 
@@ -310,11 +340,7 @@
 
     </div>
 
-    <!-- CLASS PERFORMANCE -->
-
     <div class="ml-class-grid">
-
-        <!-- SAFE -->
 
         <div class="ml-class-card safe-model-card">
 
@@ -364,8 +390,6 @@
 
         </div>
 
-        <!-- SPAM -->
-
         <div class="ml-class-card spam-model-card">
 
             <div class="ml-class-title">
@@ -413,8 +437,6 @@
             </div>
 
         </div>
-
-        <!-- PHISHING -->
 
         <div class="ml-class-card phishing-model-card">
 
@@ -466,8 +488,6 @@
 
     </div>
 
-    <!-- CONFUSION MATRIX -->
-
     <div class="confusion-section">
 
         <h3>
@@ -509,8 +529,6 @@
 
                 <tbody>
 
-                    <!-- SAFE -->
-
                     <tr>
 
                         <th>
@@ -531,8 +549,6 @@
 
                     </tr>
 
-                    <!-- SPAM -->
-
                     <tr>
 
                         <th>
@@ -552,8 +568,6 @@
                         </td>
 
                     </tr>
-
-                    <!-- PHISHING -->
 
                     <tr>
 
@@ -584,9 +598,6 @@
     </div>
 
 </section>
-        <!-- ================================================== -->
-        <!-- EMAIL FORENSICS -->
-        <!-- ================================================== -->
 
         <section class="analysis-section">
 
@@ -650,7 +661,6 @@
 
                <div class="authentication-grid">
 
-    <!-- SPF -->
     <div class="auth-card">
 
         <div class="auth-title">
@@ -691,7 +701,6 @@
 
     </div>
 
-    <!-- DKIM -->
     <div class="auth-card">
 
         <div class="auth-title">
@@ -732,7 +741,6 @@
 
     </div>
 
-    <!-- DMARC -->
     <div class="auth-card">
 
         <div class="auth-title">
@@ -779,10 +787,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-        <!-- FORENSIC INDICATORS -->
-        <!-- ================================================== -->
-
         <section class="analysis-section">
 
             <h2>
@@ -816,10 +820,6 @@
             </div>
 
         </section>
-
-        <!-- ================================================== -->
-        <!-- URL ANALYSIS -->
-        <!-- ================================================== -->
 
         <section class="analysis-section">
 
@@ -911,10 +911,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-        <!-- ATTACHMENT ANALYSIS -->
-        <!-- ================================================== -->
-
         <section class="analysis-section attachment-section">
 
             <div class="section-header">
@@ -977,10 +973,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-        <!-- FORENSIC TIMELINE -->
-        <!-- ================================================== -->
-
         <section class="analysis-section timeline-section">
             <div class="section-header">
                 <h2>🕐 Forensic Timeline</h2>
@@ -1008,10 +1000,6 @@
             <div class="empty-message">No forensic timeline data available.</div>
             {% endif %}
         </section>
-
-        <!-- ================================================== -->
-        <!-- IOC EXTRACTION -->
-        <!-- ================================================== -->
 
         <section class="analysis-section ioc-section">
 
@@ -1078,10 +1066,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-        <!-- IP ANALYSIS -->
-        <!-- ================================================== -->
-
         <section class="analysis-section">
 
             <h2>
@@ -1119,10 +1103,6 @@
             {% endif %}
 
         </section>
-
-        <!-- ================================================== -->
-        <!-- IP GEOLOCATION -->
-        <!-- ================================================== -->
 
         <section class="analysis-section">
 
@@ -1231,10 +1211,6 @@
             {% endif %}
 
         </section>
-
-        <!-- ================================================== -->
-        <!-- GEOLOCATION MAP -->
-        <!-- ================================================== -->
 
         <section class="analysis-section">
 
@@ -1407,10 +1383,6 @@
 
         </section>
 
-        <!-- ================================================== -->
-        <!-- PDF FORENSIC REPORT -->
-        <!-- ================================================== -->
-
         <section class="pdf-section">
 
             <div class="pdf-content">
@@ -1442,10 +1414,6 @@
     {% endif %}
 
 </div>
-
-<!-- ================================================== -->
-<!-- FOOTER -->
-<!-- ================================================== -->
 
 <footer class="footer">
 

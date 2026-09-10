@@ -16,7 +16,12 @@ from src.pdf_report import generate_pdf_report
 from src.ioc_extractor import extract_iocs
 from src.attachment_analyzer import analyze_email_attachments
 from src.forensic_timeline import build_forensic_timeline
-from src.database import save_investigation, get_all_investigations, get_investigation
+from src.database import (
+    save_investigation,
+    get_all_investigations,
+    get_investigation,
+    get_investigation_stats
+)
 
 # ============================================================
 # FLASK APP
@@ -1066,6 +1071,12 @@ def index():
                     "UNKNOWN"
                 )
 
+                # Normalize threat for SQLite statistics.
+                result["threat_level"] = result.get(
+                    "threat_level",
+                    result.get("threat", "UNKNOWN")
+                )
+
                 case_id = save_investigation(
                     result=result,
                     sender=sender,
@@ -1096,12 +1107,23 @@ def index():
     # RENDER DASHBOARD
     # ========================================================
 
+    try:
+        stats = get_investigation_stats()
+    except Exception as stats_error:
+        print(f"Statistics loading error: {stats_error}")
+        stats = {
+            "total": 0, "phishing": 0, "spam": 0, "safe": 0,
+            "high_risk": 0, "medium_risk": 0, "low_risk": 0,
+            "average_risk": 0
+        }
+
     return render_template(
         "index.html",
         result=result,
         error=error,
         model_metrics=model_metrics,
-        case_id=session.get("case_id")
+        case_id=session.get("case_id"),
+        stats=stats
     )
 
 # ============================================================

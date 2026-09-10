@@ -14,6 +14,14 @@ from src.forensics import (
 from src.geolocation import get_ip_location
 from src.pdf_report import generate_pdf_report
 from src.ioc_extractor import extract_iocs
+from src.attachment_analyzer import analyze_email_attachments
+from src.forensic_timeline import build_forensic_timeline
+from src.database import (
+    save_investigation,
+    get_all_investigations,
+    get_investigation,
+    get_investigation_stats
+)
 
 # ============================================================
 # FLASK APP
@@ -142,7 +150,8 @@ def extract_ips(text):
 def analyze_email(
     email_text,
     forensic_data=None,
-    ip_results=None
+    ip_results=None,
+    message=None
 ):
 
     # --------------------------------------------------------
@@ -201,6 +210,33 @@ def analyze_email(
     # 3.1 IOC EXTRACTION
     # --------------------------------------------------------
     ioc_data = extract_iocs(email_text)
+
+    # --------------------------------------------------------
+    # 3.2 ATTACHMENT ANALYSIS
+    # --------------------------------------------------------
+    attachment_data = {
+        "attachments": [],
+        "attachment_count": 0,
+        "suspicious_count": 0,
+        "high_risk_count": 0,
+        "medium_risk_count": 0,
+        "has_attachments": False,
+        "overall_risk": "LOW",
+    }
+
+    if message is None:
+        try:
+            message = parse_email(
+                email_text.encode("utf-8", errors="ignore")
+            )
+        except Exception:
+            message = None
+
+    if message is not None:
+        try:
+            attachment_data = analyze_email_attachments(message)
+        except Exception as attachment_error:
+            print(f"Attachment analysis warning: {attachment_error}")
 
     # --------------------------------------------------------
     # 4. FORENSICS
@@ -482,7 +518,29 @@ def analyze_email(
         )
 
     # ========================================================
-    # 5.7 IP ANALYSIS
+    # 5.7 ATTACHMENT RISK
+    # ========================================================
+
+    high_attachment_count = int(
+        attachment_data.get("high_risk_count", 0) or 0
+    )
+    medium_attachment_count = int(
+        attachment_data.get("medium_risk_count", 0) or 0
+    )
+
+    if high_attachment_count > 0:
+        risk_score += min(high_attachment_count * 20, 30)
+        risk_reasons.append(
+            f"{high_attachment_count} high-risk attachment(s) detected"
+        )
+    elif medium_attachment_count > 0:
+        risk_score += min(medium_attachment_count * 10, 15)
+        risk_reasons.append(
+            f"{medium_attachment_count} medium-risk attachment(s) detected"
+        )
+
+    # ========================================================
+    # 5.8 IP ANALYSIS
     # ========================================================
 
     public_ip_count = 0
@@ -509,7 +567,7 @@ def analyze_email(
         )
 
     # ========================================================
-    # 5.8 SAFE EMAIL FALSE-POSITIVE CONTROL
+    # 5.9 SAFE EMAIL FALSE-POSITIVE CONTROL
     # ========================================================
 
     # A high-confidence SAFE prediction should not become high risk
@@ -532,7 +590,7 @@ def analyze_email(
         )
 
     # ========================================================
-    # 5.9 FINAL SCORE
+    # 5.10 FINAL SCORE
     # ========================================================
 
     risk_score = min(
@@ -541,7 +599,7 @@ def analyze_email(
     )
 
     # ========================================================
-    # 5.10 FINAL THREAT LEVEL
+    # 5.11 FINAL THREAT LEVEL
     # ========================================================
 
     if risk_score >= 70:
@@ -557,7 +615,7 @@ def analyze_email(
         threat = "LOW RISK"
 
     # ========================================================
-    # 5.11 REMOVE DUPLICATE REASONS
+    # 5.12 REMOVE DUPLICATE REASONS
     # ========================================================
 
     risk_reasons = list(
@@ -567,7 +625,22 @@ def analyze_email(
     )
 
     # --------------------------------------------------------
-    # 6. RETURN RESULT
+    # 6. FORENSIC TIMELINE
+    # --------------------------------------------------------
+
+    timeline = build_forensic_timeline(
+        message=message,
+        forensic_data=forensic_data,
+        ioc_data=ioc_data,
+        attachment_data=attachment_data,
+        url_results=url_results,
+        prediction=prediction,
+        risk_score=risk_score,
+        threat=threat,
+    )
+
+    # --------------------------------------------------------
+    # 7. RETURN RESULT
     # --------------------------------------------------------
 
     return {
@@ -604,7 +677,13 @@ def analyze_email(
 ,
 
         "iocs":
-            ioc_data
+            ioc_data,
+
+        "attachments":
+            attachment_data,
+
+        "timeline":
+            timeline
     }
 
 # ============================================================
@@ -876,7 +955,8 @@ def index():
                                     result = analyze_email(
                                         body,
                                         forensic_data,
-                                        ip_results
+                                        ip_results,
+                                        message
                                     )
 
                                 except Exception as analysis_error:
@@ -910,8 +990,17 @@ def index():
 
             try:
 
+                pasted_message = None
+                try:
+                    pasted_message = parse_email(
+                        email_text.encode("utf-8", errors="ignore")
+                    )
+                except Exception as parse_error:
+                    print(f"Pasted email parse warning: {parse_error}")
+
                 result = analyze_email(
-                    email_text
+                    email_text,
+                    message=pasted_message
                 )
 
             except Exception as e:
@@ -936,25 +1025,174 @@ def index():
             )
 
         # ====================================================
-        # STORE RESULT FOR PDF
+        # STORE RESULT + SAVE INVESTIGATION
         # ====================================================
 
         if result and not error:
 
-            session[
-                "analysis_result"
-            ] = result
+            # Keep latest result in session for PDF generation.
+            session["analysis_result"] = result
+
+            # ------------------------------------------------
+            # Save investigation to SQLite database
+            # ------------------------------------------------
+            try:
+
+                forensic_info = result.get(
+                    "forensics",
+                    {}
+                ) or {}
+
+                sender = forensic_info.get(
+                    "from",
+                    ""
+                )
+
+                receiver = forensic_info.get(
+                    "to",
+                    ""
+                )
+
+                if not receiver and message is not None:
+                    try:
+                        receiver = message.get("To", "")
+                    except Exception:
+                        receiver = ""
+
+                subject = forensic_info.get(
+                    "subject",
+                    ""
+                )
+
+                # database.py expects a "threat_level" field.
+                # The analysis result uses "threat", so normalize it here.
+                result["threat_level"] = result.get(
+                    "threat",
+                    "UNKNOWN"
+                )
+
+                # Normalize threat for SQLite statistics.
+                result["threat_level"] = result.get(
+                    "threat_level",
+                    result.get("threat", "UNKNOWN")
+                )
+
+                case_id = save_investigation(
+                    result=result,
+                    sender=sender,
+                    receiver=receiver,
+                    subject=subject
+                )
+
+                # Store case ID so it can be shown on dashboard
+                # and used for follow-up actions.
+                session["case_id"] = case_id
+
+                # Make the case ID available to the template.
+                result["case_id"] = case_id
+
+                print(
+                    f"Investigation saved successfully: {case_id}"
+                )
+
+            except Exception as db_error:
+
+                # Database failure should not prevent the user
+                # from seeing the email analysis result.
+                print(
+                    f"Database save warning: {db_error}"
+                )
 
     # ========================================================
     # RENDER DASHBOARD
     # ========================================================
 
+    try:
+        stats = get_investigation_stats()
+    except Exception as stats_error:
+        print(f"Statistics loading error: {stats_error}")
+        stats = {
+            "total": 0, "phishing": 0, "spam": 0, "safe": 0,
+            "high_risk": 0, "medium_risk": 0, "low_risk": 0,
+            "average_risk": 0
+        }
+
     return render_template(
         "index.html",
         result=result,
         error=error,
-        model_metrics=model_metrics
+        model_metrics=model_metrics,
+        case_id=session.get("case_id"),
+        stats=stats
     )
+
+# ============================================================
+# INVESTIGATION HISTORY
+# ============================================================
+
+@app.route(
+    "/history",
+    methods=["GET"]
+)
+def investigation_history():
+
+    try:
+
+        investigations = get_all_investigations()
+
+        return render_template(
+            "history.html",
+            investigations=investigations
+        )
+
+    except Exception as e:
+
+        print(
+            f"History loading error: {e}"
+        )
+
+        return (
+            "Unable to load investigation history."
+        ), 500
+
+
+# ============================================================
+# INVESTIGATION DETAILS
+# ============================================================
+
+@app.route(
+    "/case/<case_id>",
+    methods=["GET"]
+)
+def investigation_details(case_id):
+
+    try:
+
+        investigation = get_investigation(
+            case_id
+        )
+
+        if not investigation:
+
+            return (
+                "Investigation case not found."
+            ), 404
+
+        return render_template(
+            "case_details.html",
+            investigation=investigation
+        )
+
+    except Exception as e:
+
+        print(
+            f"Case details error: {e}"
+        )
+
+        return (
+            "Unable to load investigation details."
+        ), 500
+
 
 # ============================================================
 # GENERATE PDF REPORT
@@ -1040,6 +1278,22 @@ def generate_report():
 # ============================================================
 
 if __name__ == "__main__":
+
+    # Initialize SQLite database before starting Flask.
+    try:
+        from src.database import initialize_database
+
+        initialize_database()
+
+        print(
+            "Investigation database initialized successfully!"
+        )
+
+    except Exception as db_error:
+
+        print(
+            f"WARNING: Database initialization failed: {db_error}"
+        )
 
     app.run(
         debug=False
