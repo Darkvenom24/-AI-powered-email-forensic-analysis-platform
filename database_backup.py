@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATABASE_PATH = DATA_DIR / "investigations.db"
@@ -65,14 +66,20 @@ def save_investigation(result, sender="", receiver="", subject=""):
     prediction = result.get("prediction", "UNKNOWN")
     confidence = result.get("confidence", 0)
     risk_score = result.get("risk_score", 0)
-
-    # Accept both names so old/new analysis results work.
     threat_level = result.get(
         "threat_level",
         result.get("threat", "UNKNOWN")
     )
 
-    values = (
+    cursor.execute("""
+        INSERT INTO investigations (
+            case_id, timestamp, sender, receiver, subject,
+            prediction, confidence, risk_score, threat_level,
+            risk_reasons, forensic_data, ioc_data,
+            attachment_data, timeline_data
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
         case_id,
         timestamp,
         sender,
@@ -87,17 +94,7 @@ def save_investigation(result, sender="", receiver="", subject=""):
         json.dumps(result.get("iocs", {}), default=str),
         json.dumps(result.get("attachments", {}), default=str),
         json.dumps(result.get("timeline", []), default=str)
-    )
-
-    cursor.execute("""
-        INSERT INTO investigations (
-            case_id, timestamp, sender, receiver, subject,
-            prediction, confidence, risk_score, threat_level,
-            risk_reasons, forensic_data, ioc_data,
-            attachment_data, timeline_data
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, values)
+    ))
 
     connection.commit()
     connection.close()
@@ -151,9 +148,10 @@ def get_investigation(case_id):
         try:
             result[field] = json.loads(result[field])
         except Exception:
-            result[field] = [] if field in (
-                "risk_reasons", "timeline_data"
-            ) else {}
+            result[field] = (
+                [] if field in ("risk_reasons", "timeline_data")
+                else {}
+            )
 
     return result
 

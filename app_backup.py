@@ -113,21 +113,35 @@ def is_valid_eml(message, raw_bytes):
 
 @app.errorhandler(413)
 def request_too_large(error):
+    stats = get_investigation_stats()
+    chart_data = {
+        "threat": [stats["phishing"], stats["spam"], stats["safe"]],
+        "risk": [stats["high_risk"], stats["medium_risk"], stats["low_risk"]]
+    }
     return render_template(
         "index.html",
         result=None,
         error="File is too large. Maximum allowed size is 5 MB.",
-        model_metrics=model_metrics
+        model_metrics=model_metrics,
+        stats=stats,
+        chart_data=chart_data
     ), 413
 
 @app.errorhandler(500)
 def internal_server_error(error):
     print(f"Internal server error: {error}")
+    stats = get_investigation_stats()
+    chart_data = {
+        "threat": [stats["phishing"], stats["spam"], stats["safe"]],
+        "risk": [stats["high_risk"], stats["medium_risk"], stats["low_risk"]]
+    }
     return render_template(
         "index.html",
         result=None,
         error="An internal error occurred. Please try again.",
-        model_metrics=model_metrics
+        model_metrics=model_metrics,
+        stats=stats,
+        chart_data=chart_data
     ), 500
 
 # ============================================================
@@ -1106,7 +1120,6 @@ def index():
     # ========================================================
     # RENDER DASHBOARD
     # ========================================================
-
     try:
         stats = get_investigation_stats()
     except Exception as stats_error:
@@ -1117,14 +1130,21 @@ def index():
             "average_risk": 0
         }
 
+    chart_data = {
+        "threat": [stats["phishing"], stats["spam"], stats["safe"]],
+        "risk": [stats["high_risk"], stats["medium_risk"], stats["low_risk"]]
+    }
+
     return render_template(
         "index.html",
         result=result,
         error=error,
         model_metrics=model_metrics,
         case_id=session.get("case_id"),
-        stats=stats
+        stats=stats,
+        chart_data=chart_data
     )
+
 
 # ============================================================
 # INVESTIGATION HISTORY

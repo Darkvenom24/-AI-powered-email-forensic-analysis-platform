@@ -1,52 +1,16 @@
 import sqlite3
 import json
 from pathlib import Path
-from datetime import datetime
-
-# Supabase integration
-try:
-    from src.supabase_client import (
-        is_supabase_configured,
-        save_investigation_supabase,
-        get_all_investigations_supabase,
-        get_investigation_supabase,
-        get_investigation_stats_supabase
-    )
-except ImportError:
-    from supabase_client import (
-        is_supabase_configured,
-        save_investigation_supabase,
-        get_all_investigations_supabase,
-        get_investigation_supabase,
-        get_investigation_stats_supabase
-    )
-
-import os
-import tempfile
+from datetime import datetime, timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-def _get_database_path():
-    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        tmp_dir = Path(tempfile.gettempdir())
-        return tmp_dir / "investigations.db"
-    try:
-        data_dir = BASE_DIR / "data"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        return data_dir / "investigations.db"
-    except (OSError, PermissionError):
-        tmp_dir = Path(tempfile.gettempdir())
-        return tmp_dir / "investigations.db"
+DATA_DIR = BASE_DIR / "data"
+DATABASE_PATH = DATA_DIR / "investigations.db"
 
 
 def get_connection():
-    db_path = _get_database_path()
-    try:
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
-    connection = sqlite3.connect(str(db_path))
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
@@ -90,9 +54,6 @@ def generate_case_id():
 
 
 def save_investigation(result, sender="", receiver="", subject=""):
-    """
-    Save investigation to SQLite and simultaneously to Supabase if configured.
-    """
     initialize_database()
 
     connection = get_connection()
@@ -111,12 +72,6 @@ def save_investigation(result, sender="", receiver="", subject=""):
         result.get("threat", "UNKNOWN")
     )
 
-    risk_reasons_json = json.dumps(result.get("risk_reasons", []), default=str)
-    forensic_data_json = json.dumps(result.get("forensics", {}), default=str)
-    ioc_data_json = json.dumps(result.get("iocs", {}), default=str)
-    attachment_data_json = json.dumps(result.get("attachments", {}), default=str)
-    timeline_data_json = json.dumps(result.get("timeline", []), default=str)
-
     values = (
         case_id,
         timestamp,
@@ -127,11 +82,11 @@ def save_investigation(result, sender="", receiver="", subject=""):
         confidence,
         risk_score,
         threat_level,
-        risk_reasons_json,
-        forensic_data_json,
-        ioc_data_json,
-        attachment_data_json,
-        timeline_data_json
+        json.dumps(result.get("risk_reasons", []), default=str),
+        json.dumps(result.get("forensics", {}), default=str),
+        json.dumps(result.get("iocs", {}), default=str),
+        json.dumps(result.get("attachments", {}), default=str),
+        json.dumps(result.get("timeline", []), default=str)
     )
 
     cursor.execute("""
@@ -146,45 +101,10 @@ def save_investigation(result, sender="", receiver="", subject=""):
 
     connection.commit()
     connection.close()
-
-    # Cloud sync to Supabase if configured
-    if is_supabase_configured():
-        try:
-            save_investigation_supabase({
-                "case_id": case_id,
-                "timestamp": timestamp,
-                "sender": sender,
-                "receiver": receiver,
-                "subject": subject,
-                "prediction": prediction,
-                "confidence": confidence,
-                "risk_score": risk_score,
-                "threat_level": threat_level,
-                "risk_reasons": result.get("risk_reasons", []),
-                "forensic_data": result.get("forensics", {}),
-                "ioc_data": result.get("iocs", {}),
-                "attachment_data": result.get("attachments", {}),
-                "timeline_data": result.get("timeline", []),
-            })
-        except Exception as e:
-            print(f"Notice: Saved to SQLite, but Supabase sync failed: {e}")
-
     return case_id
 
 
 def get_all_investigations():
-    """
-    Retrieve investigations. If Supabase is active, fetch from cloud,
-    otherwise fallback to local SQLite.
-    """
-    if is_supabase_configured():
-        try:
-            cloud_records = get_all_investigations_supabase()
-            if cloud_records:
-                return cloud_records
-        except Exception as e:
-            print(f"Supabase fetch failed, falling back to SQLite: {e}")
-
     initialize_database()
 
     connection = get_connection()
@@ -203,17 +123,6 @@ def get_all_investigations():
 
 
 def get_investigation(case_id):
-    """
-    Retrieve single case. Check Supabase first, fallback to SQLite.
-    """
-    if is_supabase_configured():
-        try:
-            cloud_case = get_investigation_supabase(case_id)
-            if cloud_case:
-                return cloud_case
-        except Exception as e:
-            print(f"Supabase case fetch error, checking SQLite: {e}")
-
     initialize_database()
 
     connection = get_connection()
@@ -267,15 +176,7 @@ def delete_investigation(case_id):
 
 
 def get_investigation_stats():
-    """Return live dashboard statistics from Supabase or SQLite."""
-    if is_supabase_configured():
-        try:
-            cloud_stats = get_investigation_stats_supabase()
-            if cloud_stats and cloud_stats.get("total", 0) > 0:
-                return cloud_stats
-        except Exception as e:
-            print(f"Supabase stats error: {e}")
-
+    """Return live dashboard statistics from SQLite."""
     initialize_database()
 
     connection = get_connection()
@@ -315,35 +216,37 @@ def get_investigation_stats():
     }
 
 
-def sync_sqlite_to_supabase():
-    """
-    Export all local SQLite investigation records to Supabase.
-    Returns (synced_count: int, error_msg: str or None).
-    """
-    if not is_supabase_configured():
-        return 0, "Supabase is not configured. Please set SUPABASE_URL and SUPABASE_KEY."
-
+def get_investigation_activity(days=7):
+    """Return daily investigation counts for the dashboard activity chart."""
     initialize_database()
+
+    days = max(1, int(days))
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days - 1)
+
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM investigations ORDER BY id ASC")
-    rows = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT DATE(timestamp) AS day, COUNT(*) AS count
+        FROM investigations
+        WHERE DATE(timestamp) BETWEEN ? AND ?
+        GROUP BY DATE(timestamp)
+        ORDER BY DATE(timestamp)
+    """, (start_date.isoformat(), end_date.isoformat()))
+
+    rows = {row["day"]: row["count"] for row in cursor.fetchall()}
     connection.close()
 
-    synced = 0
-    for row in rows:
-        r = dict(row)
-        for field in ["risk_reasons", "forensic_data", "ioc_data", "attachment_data", "timeline_data"]:
-            try:
-                r[field] = json.loads(r[field])
-            except Exception:
-                r[field] = [] if "reasons" in field or "timeline" in field else {}
+    labels = []
+    values = []
 
-        success = save_investigation_supabase(r)
-        if success:
-            synced += 1
+    for offset in range(days):
+        day = start_date + timedelta(days=offset)
+        labels.append(day.strftime("%d %b"))
+        values.append(rows.get(day.isoformat(), 0))
 
-    return synced, None
+    return {"labels": labels, "values": values}
 
 
 if __name__ == "__main__":
@@ -351,4 +254,3 @@ if __name__ == "__main__":
     print("Database initialized successfully!")
     print("Database location:", DATABASE_PATH)
     print("Existing investigations:", len(get_all_investigations()))
-    print("Supabase active:", is_supabase_configured())
