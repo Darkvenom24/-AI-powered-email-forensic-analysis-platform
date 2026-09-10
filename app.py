@@ -137,10 +137,9 @@ class VercelPathFixMiddleware:
 
 app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 
-app.secret_key = os.environ.get(
-    "FLASK_SECRET_KEY",
-    "sih26106-forensics-production-secret-key"
-)
+SECRET_KEY_FALLBACK = "sih26106-forensics-production-secret-key-32bytes"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
 
 # Maximum HTTP request size: 10 MB
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -662,8 +661,11 @@ def api_analyze():
             }), 400
 
         result, case_id = process_email_source(raw_bytes=raw_bytes, text_content=email_text)
-        session["analysis_result"] = result
-        session["case_id"] = case_id
+        try:
+            session["analysis_result"] = result
+            session["case_id"] = case_id
+        except Exception:
+            pass
 
         return jsonify({
             "success": True,
@@ -696,8 +698,11 @@ def api_run_preset(preset_id):
 
     try:
         result, case_id = process_email_source(text_content=preset["raw_text"])
-        session["analysis_result"] = result
-        session["case_id"] = case_id
+        try:
+            session["analysis_result"] = result
+            session["case_id"] = case_id
+        except Exception:
+            pass
         return jsonify({
             "success": True,
             "case_id": case_id,
@@ -850,7 +855,33 @@ def api_export_report():
             }
     
     if not result:
-        result = session.get("analysis_result")
+        try:
+            result = session.get("analysis_result")
+        except Exception:
+            result = None
+
+    if not result:
+        try:
+            all_inv = get_all_investigations()
+            if all_inv:
+                latest = get_investigation(all_inv[0]["case_id"])
+                if latest:
+                    result = {
+                        "prediction": latest.get("prediction"),
+                        "confidence": latest.get("confidence"),
+                        "risk_score": latest.get("risk_score"),
+                        "threat": latest.get("threat_level"),
+                        "risk_reasons": latest.get("risk_reasons", []),
+                        "forensics": latest.get("forensic_data", {}),
+                        "iocs": latest.get("ioc_data", {}),
+                        "attachments": latest.get("attachment_data", {}),
+                        "timeline": latest.get("timeline_data", []),
+                        "case_id": latest.get("case_id"),
+                        "urls": [],
+                        "ip_results": []
+                    }
+        except Exception:
+            pass
 
     if not result:
         return jsonify({"error": "No analysis result found. Please analyze an email first."}), 400
