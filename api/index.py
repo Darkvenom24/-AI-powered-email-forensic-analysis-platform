@@ -6,22 +6,34 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
+import urllib.parse
+
 class VercelPathFixMiddleware:
     """Ensures paths passed through Vercel rewrites or direct invocations map correctly to Flask routes."""
     def __init__(self, wsgi_app):
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        path = environ.get("PATH_INFO", "")
-        if path.startswith("/api/index.py"):
-            clean = path[len("/api/index.py"):]
-            environ["PATH_INFO"] = clean if clean else "/"
-        elif path.startswith("/api/index"):
-            clean = path[len("/api/index"):]
-            if clean and clean.startswith("/"):
-                environ["PATH_INFO"] = clean
-            elif not clean:
-                environ["PATH_INFO"] = "/"
+        qs = environ.get("QUERY_STRING", "")
+        if "__orig_path=" in qs:
+            parsed = urllib.parse.parse_qs(qs, keep_blank_values=True)
+            if "__orig_path" in parsed and parsed["__orig_path"]:
+                target = parsed.pop("__orig_path")[0]
+                if not target.startswith("/"):
+                    target = "/" + target
+                environ["PATH_INFO"] = target
+                environ["QUERY_STRING"] = urllib.parse.urlencode(parsed, doseq=True)
+        else:
+            path = environ.get("PATH_INFO", "")
+            if path.startswith("/api/index.py"):
+                clean = path[len("/api/index.py"):]
+                environ["PATH_INFO"] = clean if clean else "/"
+            elif path.startswith("/api/index"):
+                clean = path[len("/api/index"):]
+                if clean and clean.startswith("/"):
+                    environ["PATH_INFO"] = clean
+                elif not clean:
+                    environ["PATH_INFO"] = "/"
         return self.wsgi_app(environ, start_response)
 
 try:
