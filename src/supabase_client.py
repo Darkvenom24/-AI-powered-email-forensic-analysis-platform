@@ -11,10 +11,15 @@ _supabase_client = None
 _client_initialized = False
 
 
+# Default project credentials
+DEFAULT_SUPABASE_URL = "https://niarsejhpibsbxfpbsdu.supabase.co"
+DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pYXJzZWpocGlic2J4ZnBic2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwNTgwNTIsImV4cCI6MjEwNDYzNDA1Mn0.NAt8uglrdSSSilTPI2yv4LXUajL_Y5yreG1KDPTLhEE"
+
+
 def get_supabase_credentials():
-    """Retrieve Supabase URL and Key from environment."""
-    url = os.environ.get("SUPABASE_URL", "").strip()
-    key = os.environ.get("SUPABASE_KEY", "") or os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    """Retrieve Supabase URL and Key from environment, with fallbacks."""
+    url = os.environ.get("SUPABASE_URL", "").strip() or DEFAULT_SUPABASE_URL
+    key = os.environ.get("SUPABASE_KEY", "") or os.environ.get("SUPABASE_ANON_KEY", "").strip() or DEFAULT_SUPABASE_KEY
     return url, key
 
 

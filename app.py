@@ -54,7 +54,8 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 # LOAD ML MODEL
 # ============================================================
 
-MODEL_PATH = "models/email_threat_model.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "email_threat_model.pkl")
 model = None
 
 try:
@@ -70,7 +71,7 @@ except Exception as e:
 # LOAD ML MODEL PERFORMANCE METRICS
 # ============================================================
 
-METRICS_PATH = "data/model_metrics.json"
+METRICS_PATH = os.path.join(BASE_DIR, "data", "model_metrics.json")
 model_metrics = {}
 
 try:

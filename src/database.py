@@ -21,14 +21,32 @@ except ImportError:
         get_investigation_stats_supabase
     )
 
+import os
+import tempfile
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-DATABASE_PATH = DATA_DIR / "investigations.db"
+
+
+def _get_database_path():
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        tmp_dir = Path(tempfile.gettempdir())
+        return tmp_dir / "investigations.db"
+    try:
+        data_dir = BASE_DIR / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir / "investigations.db"
+    except (OSError, PermissionError):
+        tmp_dir = Path(tempfile.gettempdir())
+        return tmp_dir / "investigations.db"
 
 
 def get_connection():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DATABASE_PATH)
+    db_path = _get_database_path()
+    try:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    connection = sqlite3.connect(str(db_path))
     connection.row_factory = sqlite3.Row
     return connection
 
