@@ -538,13 +538,34 @@
             </div>
             <form id="form-analyze-email" enctype="multipart/form-data">
                 <div class="modal-body">
+                    <!-- Dynamic Live Validation Banner -->
+                    <div id="file-validation-feedback" class="file-validation-feedback" style="display:none;"></div>
+
                     <!-- File Upload Dropzone -->
                     <div class="form-group">
-                        <label>Upload Raw Email (.EML File)</label>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <label style="margin-bottom:0;">Upload Raw Email</label>
+                            <span class="badge-eml-only" title="Executable binaries (.exe), scripts, and archives are strictly blocked">🛡️ RFC 822 (.EML) ONLY</span>
+                        </div>
                         <div class="dropzone" id="file-dropzone">
-                            <svg width="36" height="36" style="width:36px;height:36px;margin:0 auto 10px;display:block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            <p><strong>Click to browse</strong> or drag & drop .eml file here</p>
-                            <input type="file" id="email-file-input" name="email_file" accept=".eml" style="display:none;">
+                            <div class="dropzone-default-content" id="dropzone-default-content">
+                                <svg width="36" height="36" style="width:36px;height:36px;margin:0 auto 10px;display:block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p id="dropzone-prompt"><strong>Click to browse</strong> or drag & drop <code>.eml</code> email file here</p>
+                                <span style="font-size:11px;color:var(--text-muted);display:block;margin-top:4px;">Max size: 15 MB • Executable binaries (.exe/.dll) are strictly prohibited</span>
+                            </div>
+                            <input type="file" id="email-file-input" name="email_file" accept=".eml,message/rfc822" style="display:none;">
+                        </div>
+
+                        <!-- Selected Valid File Card -->
+                        <div id="file-selected-card" class="file-selected-card" style="display:none;">
+                            <div class="file-info-col">
+                                <span class="file-verified-icon">✓</span>
+                                <div>
+                                    <div class="file-name" id="file-selected-name">filename.eml</div>
+                                    <div class="file-meta" id="file-selected-meta">Verified RFC 822 Email • 0 KB</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-remove-file" id="btn-remove-file" title="Remove selected file">&times;</button>
                         </div>
                     </div>
 
@@ -555,12 +576,13 @@
                     <!-- Raw Textarea -->
                     <div class="form-group">
                         <label>Raw Email Headers & Text</label>
-                        <textarea class="form-textarea" name="email_text" placeholder="From: billing@...&#10;Subject: Urgent Invoice...&#10;&#10;Paste headers and email body here..."></textarea>
+                        <textarea class="form-textarea" id="email-text-input" name="email_text" placeholder="From: billing@...&#10;Subject: Urgent Invoice...&#10;&#10;Paste headers and email body here..."></textarea>
+                        <div id="textarea-validation-feedback" class="textarea-validation-feedback"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-modal-close">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Run Forensic Analysis</button>
+                    <button type="submit" class="btn btn-primary" id="btn-run-analysis">Run Forensic Analysis</button>
                 </div>
             </form>
         </div>

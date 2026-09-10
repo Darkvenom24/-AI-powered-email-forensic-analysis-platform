@@ -47,7 +47,10 @@ def print_result_card(title: str, email_preview: str, result: dict):
     if result.get("attachments"):
         print("Attachments:")
         for a in result["attachments"]:
-            print(f"  - {a['filename']} ({a['size_bytes']} bytes, SHA256: {a['sha256'][:16]}..., Risky: {a['is_risky']})")
+            if isinstance(a, dict):
+                print(f"  - {a.get('filename', 'unnamed')} ({a.get('size_bytes', 0)} bytes, SHA256: {str(a.get('sha256', ''))[:16]}..., Risky: {a.get('is_risky', False)})")
+            else:
+                print(f"  - {a}")
     print("=" * 75)
 
 
@@ -172,7 +175,7 @@ def run_tests():
             except Exception:
                 pass
 
-        res_5 = analyze_email(body, forensic_data=forensics_5, ip_results=ip_results_5, attachments=attachments_5)
+        res_5 = analyze_email(body, forensic_data=forensics_5, ip_results=ip_results_5, message=msg)
         print_result_card("5. Real .EML File (data/test_email.eml)", body, res_5)
     else:
         print("Notice: data/test_email.eml not found.")

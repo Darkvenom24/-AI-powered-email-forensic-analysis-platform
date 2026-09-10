@@ -2,15 +2,18 @@
 // SIH26106: Cyber SOC Analyst Dashboard Controller
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    initLeafletMap();
-    initGauge();
-    initWaveform();
-    initRelationshipGraph();
-    setupEventListeners();
-    fetchStats();
-    checkSupabaseStatus();
-});
+if (!window.__SIH_DASHBOARD_INITIALIZED__) {
+    window.__SIH_DASHBOARD_INITIALIZED__ = true;
+    document.addEventListener('DOMContentLoaded', () => {
+        initLeafletMap();
+        initGauge();
+        initWaveform();
+        initRelationshipGraph();
+        setupEventListeners();
+        fetchStats();
+        checkSupabaseStatus();
+    });
+}
 
 // Current active analysis state
 let currentResult = window.INITIAL_RESULT || null;
@@ -464,11 +467,378 @@ function setupEventListeners() {
         });
     });
 
+    // ============================================================
+    // DYNAMIC LIVE FILE VALIDATION & INGESTION CONTROLLER
+    // ============================================================
+
+    const DANGEROUS_EXTENSIONS = [
+        'exe', 'dll', 'sys', 'com', 'scr', 'pif', 'bat', 'cmd', 'ps1', 'vbs',
+        'vbe', 'js', 'jse', 'wsf', 'wsh', 'msc', 'msi', 'msp', 'reg', 'hta',
+        'jar', 'app', 'dmg', 'pkg', 'deb', 'rpm', 'elf', 'bin', 'so', 'dylib',
+        'sh', 'bash', 'csh', 'py', 'pl', 'php'
+    ];
+
+    function formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async function validateEmailFileClient(file) {
+        if (!file) {
+            return { isValid: false, error: 'No file selected. Please choose a valid .eml file.' };
+        }
+
+        const fileName = file.name || 'unnamed_file';
+        const lowerName = fileName.toLowerCase();
+
+        // 1. Check empty file (0 bytes)
+        if (file.size === 0) {
+            return {
+                isValid: false,
+                error: `⛔ Empty File: "${fileName}" contains 0 bytes. Please upload a valid RFC 822 email file.`
+            };
+        }
+
+        // 2. Check maximum size (15 MB)
+        const MAX_SIZE = 15 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            return {
+                isValid: false,
+                error: `⛔ File Too Large: "${fileName}" is ${formatFileSize(file.size)}. Maximum allowed size is 15 MB.`
+            };
+        }
+
+        // 3. Extension inspection
+        const extMatch = lowerName.match(/\.([a-z0-9_-]+)$/);
+        const ext = extMatch ? extMatch[1] : '';
+
+        if (ext !== 'eml') {
+            if (DANGEROUS_EXTENSIONS.includes(ext)) {
+                return {
+                    isValid: false,
+                    error: `⛔ Security Violation: "${fileName}" is an executable or dangerous file type (.${ext}). Executable binaries cannot be analyzed as email files. Only RFC 822 (.eml) files are permitted.`
+                };
+            }
+            return {
+                isValid: false,
+                error: `❌ Unsupported File Format: "${fileName}". Only RFC 822 email files (.eml) are supported for forensic investigation.`
+            };
+        }
+
+        // 4. Double extension check (e.g. payload.exe.eml)
+        const tokens = lowerName.split('.');
+        if (tokens.length > 2) {
+            const innerExt = tokens[tokens.length - 2];
+            if (DANGEROUS_EXTENSIONS.includes(innerExt)) {
+                return {
+                    isValid: false,
+                    error: `⛔ Security Alert: Double extension detected with dangerous payload signature (.${innerExt}.${ext}). Disguised executable files are strictly prohibited.`
+                };
+            }
+        }
+
+        // 5. Binary magic byte inspection via FileReader
+        try {
+            const buffer = await file.slice(0, 512).arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+
+            // Windows PE / DOS Executable: 'MZ' (0x4D 0x5A)
+            if (bytes.length >= 2 && bytes[0] === 0x4D && bytes[1] === 0x5A) {
+                return {
+                    isValid: false,
+                    error: `⛔ Executable Binary Detected: "${fileName}" contains Windows PE / DOS executable magic bytes (MZ). Executables cannot be analyzed as emails.`
+                };
+            }
+
+            // Linux ELF Executable: 0x7F 'E' 'L' 'F'
+            if (bytes.length >= 4 && bytes[0] === 0x7F && bytes[1] === 0x45 && bytes[2] === 0x4C && bytes[3] === 0x46) {
+                return {
+                    isValid: false,
+                    error: `⛔ Executable Binary Detected: "${fileName}" contains Linux ELF executable magic bytes. Executables cannot be analyzed as emails.`
+                };
+            }
+
+            // Mach-O Executables
+            if (bytes.length >= 4) {
+                if ((bytes[0] === 0xFE && bytes[1] === 0xED && bytes[2] === 0xFA && (bytes[3] === 0xCE || bytes[3] === 0xCF)) ||
+                    (bytes[0] === 0xCE && bytes[1] === 0xFA && bytes[2] === 0xED && bytes[3] === 0xFE) ||
+                    (bytes[0] === 0xCF && bytes[1] === 0xFA && bytes[2] === 0xED && bytes[3] === 0xFE) ||
+                    (bytes[0] === 0xCA && bytes[1] === 0xFE && bytes[2] === 0xBA && bytes[3] === 0xBE)) {
+                    return {
+                        isValid: false,
+                        error: `⛔ Executable Binary Detected: "${fileName}" contains Mach-O binary magic bytes. Executables cannot be analyzed as emails.`
+                    };
+                }
+            }
+
+            // ZIP / Archive: 0x50 0x4B 0x03 0x04
+            if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+                return {
+                    isValid: false,
+                    error: `📦 Archive File Detected: "${fileName}" is a compressed archive (.zip/.jar). Please extract the archive and upload the individual .eml file.`
+                };
+            }
+
+            // PDF: %PDF-
+            if (bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+                return {
+                    isValid: false,
+                    error: `📄 PDF Document Detected: "${fileName}" is a PDF file, not an email message. Only raw RFC 822 email files (.eml) can be ingested.`
+                };
+            }
+
+            // Null-byte density check
+            let nullCount = 0;
+            for (let i = 0; i < bytes.length; i++) {
+                if (bytes[i] === 0x00) nullCount++;
+            }
+            if (bytes.length > 0 && (nullCount / bytes.length) > 0.01) {
+                return {
+                    isValid: false,
+                    error: `⛔ Binary File Rejected: "${fileName}" contains binary data sequences and is not a valid text-based email message.`
+                };
+            }
+        } catch (e) {
+            console.warn("Could not read file slice for magic byte inspection:", e);
+        }
+
+        // 6. Text RFC 822 header inspection
+        try {
+            const textChunk = await file.slice(0, 2048).text();
+            const headerRegex = /^(?:From|To|Subject|Date|Received|Message-ID|Return-Path|MIME-Version|Content-Type|Delivered-To|DKIM-Signature|Authentication-Results|X-[a-zA-Z0-9_-]+)\s*:/im;
+            const hasHeader = headerRegex.test(textChunk);
+            const hasEmailCue = textChunk.includes('@') && textChunk.trim().length > 20;
+
+            if (!hasHeader && !hasEmailCue) {
+                return {
+                    isValid: false,
+                    error: `⚠️ Invalid Email Structure: "${fileName}" does not contain standard RFC 822 email headers (e.g., From, To, Subject, Date) or readable email content.`
+                };
+            }
+        } catch (e) {
+            console.warn("Could not read text chunk for header inspection:", e);
+        }
+
+        return {
+            isValid: true,
+            file: file,
+            name: fileName,
+            size: file.size,
+            formattedSize: formatFileSize(file.size)
+        };
+    }
+
+    function showValidationFeedback(type, message) {
+        const feedback = document.getElementById('file-validation-feedback');
+        if (!feedback) return;
+        feedback.className = `file-validation-feedback ${type}`;
+        feedback.innerHTML = `<span>${message}</span>`;
+        feedback.style.display = 'flex';
+    }
+
+    function clearValidationFeedback() {
+        const feedback = document.getElementById('file-validation-feedback');
+        if (!feedback) return;
+        feedback.style.display = 'none';
+        feedback.className = 'file-validation-feedback';
+        feedback.innerHTML = '';
+    }
+
+    function setValidSelectedFile(fileValidation) {
+        const dropzone = document.getElementById('file-dropzone');
+        const defaultContent = document.getElementById('dropzone-default-content');
+        const selectedCard = document.getElementById('file-selected-card');
+        const selectedName = document.getElementById('file-selected-name');
+        const selectedMeta = document.getElementById('file-selected-meta');
+
+        if (dropzone) {
+            dropzone.classList.remove('is-invalid');
+            dropzone.classList.add('is-valid');
+        }
+        if (defaultContent) defaultContent.style.display = 'none';
+        if (selectedCard) {
+            if (selectedName) selectedName.textContent = fileValidation.name;
+            if (selectedMeta) selectedMeta.textContent = `Verified RFC 822 Email • ${fileValidation.formattedSize}`;
+            selectedCard.style.display = 'flex';
+        }
+        clearValidationFeedback();
+    }
+
+    function clearSelectedFile() {
+        const fileInput = document.getElementById('email-file-input');
+        const dropzone = document.getElementById('file-dropzone');
+        const defaultContent = document.getElementById('dropzone-default-content');
+        const selectedCard = document.getElementById('file-selected-card');
+
+        if (fileInput) fileInput.value = '';
+        if (dropzone) {
+            dropzone.classList.remove('is-valid', 'is-invalid', 'dragover', 'dragover-valid', 'dragover-invalid');
+        }
+        if (defaultContent) defaultContent.style.display = 'block';
+        if (selectedCard) selectedCard.style.display = 'none';
+        clearValidationFeedback();
+    }
+
+    function triggerInvalidDropzone(errorMessage) {
+        const fileInput = document.getElementById('email-file-input');
+        const dropzone = document.getElementById('file-dropzone');
+        const defaultContent = document.getElementById('dropzone-default-content');
+        const selectedCard = document.getElementById('file-selected-card');
+
+        if (fileInput) fileInput.value = '';
+        if (selectedCard) selectedCard.style.display = 'none';
+        if (defaultContent) defaultContent.style.display = 'block';
+
+        if (dropzone) {
+            dropzone.classList.remove('is-valid', 'dragover-valid', 'dragover-invalid');
+            dropzone.classList.remove('is-invalid');
+            // Trigger reflow to restart shake animation
+            void dropzone.offsetWidth;
+            dropzone.classList.add('is-invalid');
+        }
+
+        showValidationFeedback('error', errorMessage);
+    }
+
+    // Attach Dropzone & File Input Listeners
+    const dropzone = document.getElementById('file-dropzone');
+    const fileInput = document.getElementById('email-file-input');
+    const btnRemoveFile = document.getElementById('btn-remove-file');
+    const emailTextInput = document.getElementById('email-text-input');
+    const textareaFeedback = document.getElementById('textarea-validation-feedback');
+
+    if (btnRemoveFile) {
+        btnRemoveFile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearSelectedFile();
+        });
+    }
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', (e) => {
+            if (e.target.closest('#file-selected-card') || e.target.closest('#btn-remove-file')) {
+                return;
+            }
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async () => {
+            if (fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const validation = await validateEmailFileClient(file);
+                if (validation.isValid) {
+                    setValidSelectedFile(validation);
+                } else {
+                    triggerInvalidDropzone(validation.error);
+                }
+            }
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let hasInvalidItem = false;
+            if (e.dataTransfer && e.dataTransfer.items) {
+                for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                    const item = e.dataTransfer.items[i];
+                    if (item.type && (item.type.includes('x-msdownload') || item.type.includes('x-dosexec') || item.type.includes('executable'))) {
+                        hasInvalidItem = true;
+                        break;
+                    }
+                }
+            }
+
+            if (hasInvalidItem) {
+                dropzone.classList.remove('dragover-valid');
+                dropzone.classList.add('dragover-invalid');
+            } else {
+                dropzone.classList.remove('dragover-invalid');
+                dropzone.classList.add('dragover-valid');
+            }
+        });
+
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover', 'dragover-valid', 'dragover-invalid');
+        });
+
+        dropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover', 'dragover-valid', 'dragover-invalid');
+
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                const validation = await validateEmailFileClient(file);
+                if (validation.isValid) {
+                    fileInput.files = e.dataTransfer.files;
+                    setValidSelectedFile(validation);
+                } else {
+                    triggerInvalidDropzone(validation.error);
+                }
+            }
+        });
+    }
+
+    // Live Textarea Feedback
+    if (emailTextInput) {
+        emailTextInput.addEventListener('input', () => {
+            const val = emailTextInput.value;
+            if (val.includes('\x00')) {
+                showValidationFeedback('error', '⛔ Binary data detected in text area. Executable payloads cannot be pasted.');
+                if (textareaFeedback) {
+                    textareaFeedback.innerHTML = '<span style="color:#ef4444;">Binary payload detected!</span>';
+                }
+            } else if (val.trim().length > 0) {
+                if (textareaFeedback) {
+                    textareaFeedback.innerHTML = `<span>Pasted text: ${val.length} chars</span>`;
+                }
+                clearValidationFeedback();
+            } else {
+                if (textareaFeedback) textareaFeedback.innerHTML = '';
+            }
+        });
+    }
+
     // Form submit for email analysis
     const analyzeForm = document.getElementById('form-analyze-email');
     if (analyzeForm) {
-        analyzeForm.addEventListener('submit', (e) => {
+        analyzeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+            const textVal = emailTextInput ? emailTextInput.value.trim() : '';
+
+            // Pre-flight client verification
+            if (hasFile) {
+                const validation = await validateEmailFileClient(fileInput.files[0]);
+                if (!validation.isValid) {
+                    triggerInvalidDropzone(validation.error);
+                    return;
+                }
+            } else if (textVal) {
+                if (textVal.includes('\x00')) {
+                    showValidationFeedback('error', '⛔ Binary payload detected in text input. Cannot analyze binary executables.');
+                    return;
+                }
+                if (textVal.length < 15) {
+                    showValidationFeedback('warning', '⚠️ The provided email text is too short. Please provide complete headers and body.');
+                    return;
+                }
+            } else {
+                showValidationFeedback('warning', '⚠️ Please upload a valid .eml file or paste email headers and body to analyze.');
+                if (dropzone) {
+                    void dropzone.offsetWidth;
+                    dropzone.classList.add('is-invalid');
+                }
+                return;
+            }
+
             const formData = new FormData(analyzeForm);
             showLoading(true);
 
@@ -476,45 +846,24 @@ function setupEventListeners() {
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.json())
-            .then(res => {
+            .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data: data })))
+            .then(({ status, ok, data }) => {
                 showLoading(false);
-                if (res.success && res.data) {
+                if (ok && data.success && data.data) {
                     analyzeModal.classList.remove('active');
-                    updateDashboardUI(res.data);
+                    clearSelectedFile();
+                    if (emailTextInput) emailTextInput.value = '';
+                    updateDashboardUI(data.data);
                 } else {
-                    alert("Analysis error: " + (res.error || "Failed to analyze"));
+                    const errMsg = data.error || (data.details && data.details.code) || "Analysis failed";
+                    showValidationFeedback('error', `❌ Analysis Error: ${errMsg}`);
+                    triggerInvalidDropzone(errMsg);
                 }
             })
             .catch(err => {
                 showLoading(false);
-                alert("Network error: " + err);
+                showValidationFeedback('error', `⚠️ Network Error: ${err.message || err}`);
             });
-        });
-    }
-
-    // Drag and drop zone
-    const dropzone = document.getElementById('file-dropzone');
-    const fileInput = document.getElementById('email-file-input');
-    if (dropzone && fileInput) {
-        dropzone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                dropzone.querySelector('p').textContent = `Selected: ${fileInput.files[0].name}`;
-            }
-        });
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                dropzone.querySelector('p').textContent = `Selected: ${e.dataTransfer.files[0].name}`;
-            }
         });
     }
 

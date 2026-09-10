@@ -46,6 +46,11 @@ from src.supabase_client import (
     get_supabase_credentials
 )
 from src.sample_presets import get_all_presets, get_preset
+from src.file_validator import (
+    validate_email_upload,
+    validate_email_text_payload,
+    MAX_EMAIL_FILE_SIZE
+)
 
 # ============================================================
 # FLASK APP SETUP
@@ -179,14 +184,10 @@ except Exception as e:
 MAX_EMAIL_FILE_SIZE = 10 * 1024 * 1024
 
 
-def is_valid_eml(message, raw_bytes):
-    """Basic validation for uploaded .eml files."""
-    if not raw_bytes or not raw_bytes.strip():
-        return False
-    common_headers = (
-        "From", "To", "Subject", "Date", "Message-ID", "Reply-To", "Return-Path"
-    )
-    return any(message.get(header) for header in common_headers)
+def is_valid_eml(message, raw_bytes, filename=None):
+    """Validation for uploaded .eml files enforcing strict security and MIME standards."""
+    is_valid, _, _ = validate_email_upload(raw_bytes, filename or "upload.eml")
+    return is_valid
 
 
 def extract_ips(text):
@@ -666,6 +667,11 @@ def process_email_source(raw_bytes=None, text_content=None):
     ip_results = []
 
     if raw_bytes:
+        # Defense-in-depth safety check against executables and binary blobs
+        is_valid, err_msg, _ = validate_email_upload(raw_bytes, "raw_upload.eml")
+        if not is_valid:
+            raise ValueError(f"Security/Format Rejection: {err_msg}")
+
         try:
             message = parse_email(raw_bytes)
         except Exception as e:
@@ -766,23 +772,24 @@ def index():
 
         try:
             if uploaded_file and uploaded_file.filename:
-                filename = uploaded_file.filename.strip()
-                if not filename.lower().endswith(".eml"):
-                    error = "Only .eml files are supported for file upload."
+                is_valid, val_err, _ = validate_email_upload(uploaded_file)
+                if not is_valid:
+                    error = val_err
                 else:
                     raw_bytes = uploaded_file.read()
-                    if not raw_bytes.strip():
-                        error = "The uploaded file is empty."
-                    else:
-                        result, case_id = process_email_source(raw_bytes=raw_bytes)
-                        session["analysis_result"] = result
-                        session["case_id"] = case_id
+                    result, case_id = process_email_source(raw_bytes=raw_bytes)
+                    session["analysis_result"] = result
+                    session["case_id"] = case_id
             elif email_text:
-                result, case_id = process_email_source(text_content=email_text)
-                session["analysis_result"] = result
-                session["case_id"] = case_id
+                is_valid, text_err, _ = validate_email_text_payload(email_text)
+                if not is_valid:
+                    error = text_err
+                else:
+                    result, case_id = process_email_source(text_content=email_text)
+                    session["analysis_result"] = result
+                    session["case_id"] = case_id
             else:
-                error = "Please upload an .eml file or paste email content."
+                error = "Please upload a valid .eml file or paste email content."
         except Exception as e:
             error = f"Analysis failed: {str(e)}"
 
@@ -815,6 +822,14 @@ def api_analyze():
         if "email_file" in request.files:
             file = request.files["email_file"]
             if file and file.filename and file.filename.strip():
+                is_valid, val_err, val_meta = validate_email_upload(file)
+                if not is_valid:
+                    return jsonify({
+                        "success": False,
+                        "error": val_err,
+                        "code": val_meta.get("code", "INVALID_FILE_TYPE"),
+                        "details": val_meta
+                    }), 400
                 raw_bytes = file.read()
 
         if not raw_bytes:
@@ -829,10 +844,20 @@ def api_analyze():
                 except Exception:
                     pass
 
+            if email_text:
+                is_valid, text_err, text_meta = validate_email_text_payload(email_text)
+                if not is_valid:
+                    return jsonify({
+                        "success": False,
+                        "error": text_err,
+                        "code": text_meta.get("code", "INVALID_TEXT_PAYLOAD"),
+                        "details": text_meta
+                    }), 400
+
         if not raw_bytes and (not email_text or not email_text.strip()):
             return jsonify({
                 "success": False,
-                "error": "No email content provided. Send 'email_file' or 'email_text'."
+                "error": "No email content provided. Please upload a valid .eml file or paste email content."
             }), 400
 
         result, case_id = process_email_source(raw_bytes=raw_bytes, text_content=email_text)
