@@ -1,45 +1,76 @@
 {
-    "accuracy": 93.87,
-    "classes": {
-        "safe": {
-            "precision": 97.65,
-            "recall": 95.3,
-            "f1_score": 96.46,
-            "support": 1001
-        },
-        "spam": {
-            "precision": 80.21,
-            "recall": 80.21,
-            "f1_score": 80.21,
-            "support": 96
-        },
-        "phishing": {
-            "precision": 90.06,
-            "recall": 93.67,
-            "f1_score": 91.83,
-            "support": 600
-        }
-    },
-    "confusion_matrix": [
-        [
-            954,
-            2,
-            45
-        ],
-        [
-            2,
-            77,
-            17
-        ],
-        [
-            21,
-            17,
-            562
-        ]
+  "dataset_used": "data/final_emails.csv",
+  "total_samples": 8469,
+  "train_samples": 5928,
+  "val_samples": 1270,
+  "test_samples": 1271,
+  "random_seed": 42,
+  "training_timestamp": "2026-09-11T00:00:50.727945",
+  "model_name": "TF-IDF + Logistic Regression",
+  "tfidf_parameters": {
+    "max_features": 20000,
+    "ngram_range": [
+      1,
+      2
     ],
-    "confusion_matrix_labels": [
-        "safe",
-        "spam",
-        "phishing"
+    "min_df": 2,
+    "sublinear_tf": true,
+    "lowercase": true
+  },
+  "classifier_parameters": {
+    "algorithm": "LogisticRegression",
+    "C": 2.0,
+    "class_weight": null,
+    "solver": "lbfgs",
+    "max_iter": 1000
+  },
+  "accuracy": 94.96,
+  "precision": 94.89,
+  "recall": 94.96,
+  "f1_score": 94.82,
+  "macro_f1": 88.72,
+  "roc_auc_ovr": 0.9919,
+  "roc_auc_phishing": 0.992,
+  "phishing_precision": 92.01,
+  "phishing_recall": 94.88,
+  "phishing_f1": 93.42,
+  "phishing_false_negatives": 23,
+  "phishing_false_positives": 37,
+  "classes": {
+    "safe": {
+      "precision": 97.22,
+      "recall": 97.87,
+      "f1_score": 97.54,
+      "support": 750
+    },
+    "spam": {
+      "precision": 88.68,
+      "recall": 65.28,
+      "f1_score": 75.2,
+      "support": 72
+    },
+    "phishing": {
+      "precision": 92.01,
+      "recall": 94.88,
+      "f1_score": 93.42,
+      "support": 449
+    }
+  },
+  "confusion_matrix": [
+    [
+      734,
+      0,
+      16
+    ],
+    [
+      4,
+      47,
+      21
+    ],
+    [
+      17,
+      6,
+      426
     ]
+  ]
 }
