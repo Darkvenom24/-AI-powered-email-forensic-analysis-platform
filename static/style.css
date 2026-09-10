@@ -231,10 +231,10 @@ body {
 }
 
 .top-header {
-    height: var(--header-height);
+    height: 64px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
-    padding: 0 32px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -242,18 +242,24 @@ body {
     top: 0;
     z-index: 90;
     backdrop-filter: blur(10px);
+    gap: 16px;
+    box-sizing: border-box;
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 14px;
+    min-width: 0;
+    flex: 1;
 }
 
 .header-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .preset-selector-wrapper {
@@ -261,16 +267,21 @@ body {
     align-items: center;
     gap: 8px;
     background: var(--bg-card);
-    padding: 6px 12px;
+    padding: 0 12px;
+    height: 38px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
+    flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .preset-selector-wrapper label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .preset-select {
@@ -282,6 +293,10 @@ body {
     outline: none;
     cursor: pointer;
     font-family: var(--font-main);
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .preset-select option {
@@ -289,36 +304,88 @@ body {
     color: var(--text-primary);
 }
 
+.active-case-indicator {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid var(--border-cyan);
+    border-radius: var(--radius-md);
+    padding: 0 12px;
+    height: 38px;
+    font-size: 12px;
+    min-width: 0;
+    max-width: 280px;
+    flex-shrink: 1;
+    box-sizing: border-box;
+}
+
+.active-case-label {
+    color: var(--accent-cyan);
+    font-weight: 600;
+    margin-right: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+#header-subject {
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+@media (max-width: 1280px) {
+    .active-case-indicator {
+        display: none !important;
+    }
+}
+
 .header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .btn {
-    padding: 9px 18px;
+    height: 38px;
+    padding: 0 16px;
     border-radius: var(--radius-md);
     font-size: 13px;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.2s ease;
     text-decoration: none;
     font-family: var(--font-main);
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
+.btn svg {
+    flex-shrink: 0;
+    vertical-align: middle;
 }
 
 .btn-primary {
     background: linear-gradient(135deg, #06B6D4, #0891B2);
     color: #FFFFFF;
-    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 2px 10px rgba(6, 182, 212, 0.3);
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #0891B2, #0E7490);
-    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+    box-shadow: 0 4px 16px rgba(6, 182, 212, 0.4);
     transform: translateY(-1px);
 }
 
@@ -334,14 +401,14 @@ body {
 }
 
 .btn-report {
-    background: rgba(6, 182, 212, 0.15);
+    background: rgba(6, 182, 212, 0.12);
     color: #06B6D4;
     border: 1px solid rgba(6, 182, 212, 0.3);
 }
 
 .btn-report:hover {
-    background: rgba(6, 182, 212, 0.25);
-    box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+    background: rgba(6, 182, 212, 0.22);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
 }
 
 .user-profile {
@@ -350,24 +417,28 @@ body {
     gap: 10px;
     padding-left: 12px;
     border-left: 1px solid var(--border-color);
+    flex-shrink: 0;
+    height: 38px;
 }
 
 .user-avatar {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: linear-gradient(135deg, #3B82F6, #6366F1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     color: white;
+    flex-shrink: 0;
 }
 
 .user-meta {
     display: flex;
     flex-direction: column;
+    white-space: nowrap;
 }
 
 .user-name {
