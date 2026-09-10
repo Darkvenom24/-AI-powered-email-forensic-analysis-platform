@@ -38,6 +38,16 @@ from src.forensics import (
 )
 from src.geolocation import get_ip_location
 from src.pdf_report import generate_pdf_report
+from src.ioc_extractor import extract_iocs
+from src.attachment_analyzer import analyze_email_attachments
+from src.forensic_timeline import build_forensic_timeline
+from src.database import (
+    initialize_database,
+    save_investigation,
+    get_all_investigations,
+    get_investigation,
+    get_investigation_stats
+)
 
 # ============================================================
 # FLASK APPLICATION SETUP
@@ -231,7 +241,8 @@ def analyze_email(
     email_text,
     forensic_data=None,
     ip_results=None,
-    attachments=None
+    attachments=None,
+    message=None
 ):
     """
     Complete email security pipeline:
@@ -287,11 +298,49 @@ def analyze_email(
     all_ips = list(dict.fromkeys(text_ips + ([r.get("ip") for r in (ip_results or []) if r.get("ip")])))
 
     # --------------------------------------------------------
+    # 3.1 IOC EXTRACTION
+    # --------------------------------------------------------
+    ioc_data = extract_iocs(email_text)
+
+    # --------------------------------------------------------
+    # 3.2 ATTACHMENT ANALYSIS
+    # --------------------------------------------------------
+    attachment_data = {
+        "attachments": [],
+        "attachment_count": 0,
+        "suspicious_count": 0,
+        "high_risk_count": 0,
+        "medium_risk_count": 0,
+        "has_attachments": False,
+        "overall_risk": "LOW",
+    }
+
+    if message is None:
+        try:
+            message = parse_email(
+                email_text.encode("utf-8", errors="ignore")
+            )
+        except Exception:
+            message = None
+
+    if message is not None:
+        try:
+            attachment_data = analyze_email_attachments(message)
+        except Exception as attachment_error:
+            print(f"Attachment analysis warning: {attachment_error}")
+
+        if attachments is None:
+            try:
+                attachments = extract_attachments(message)
+            except Exception:
+                attachments = []
+
+    # --------------------------------------------------------
     # 4. FORENSIC HEADERS
     # --------------------------------------------------------
     if forensic_data is None:
         try:
-            msg = parse_email(email_text.encode("utf-8", errors="ignore"))
+            msg = message or parse_email(email_text.encode("utf-8", errors="ignore"))
             forensic_data = analyze_headers(msg)
         except Exception:
             forensic_data = {
@@ -477,7 +526,21 @@ def analyze_email(
         risk_reasons.append("Email passed core security and authentication checks")
 
     # --------------------------------------------------------
-    # 6. RETURN ENRICHED RESULT
+    # 6. FORENSIC TIMELINE
+    # --------------------------------------------------------
+    timeline = build_forensic_timeline(
+        message=message,
+        forensic_data=forensic_data,
+        ioc_data=ioc_data,
+        attachment_data=attachment_data,
+        url_results=url_results,
+        prediction=prediction_display,
+        risk_score=risk_score,
+        threat=threat,
+    )
+
+    # --------------------------------------------------------
+    # 7. RETURN ENRICHED RESULT
     # --------------------------------------------------------
     return {
         "prediction": prediction_display,
@@ -490,7 +553,9 @@ def analyze_email(
         "ips": all_ips,
         "forensics": forensic_data,
         "ip_results": ip_results or [],
-        "attachments": attachments or []
+        "iocs": ioc_data,
+        "attachments": attachment_data,
+        "timeline": timeline
     }
 
 
@@ -502,6 +567,7 @@ def analyze_email(
 def index():
     result = None
     error = None
+    message = None
 
     if request.method == "POST":
         email_text = ""
@@ -561,12 +627,12 @@ def index():
                                         }
                                     ip_results.append(location)
 
-                                # Run end-to-end analysis
                                 result = analyze_email(
                                     body,
                                     forensic_data=forensic_data,
                                     ip_results=ip_results,
-                                    attachments=attachments
+                                    attachments=attachments,
+                                    message=message
                                 )
 
                 except Exception as e:
@@ -576,7 +642,18 @@ def index():
         # 3. Analyze pasted plain text
         elif email_text and not error:
             try:
-                result = analyze_email(email_text)
+                try:
+                    message = parse_email(
+                        email_text.encode("utf-8", errors="ignore")
+                    )
+                except Exception as parse_error:
+                    print(f"Pasted email parse warning: {parse_error}")
+                    message = None
+
+                result = analyze_email(
+                    email_text,
+                    message=message
+                )
             except Exception as e:
                 print(f"Text analysis error: {e}")
                 error = "Email analysis failed. Please check the input."
@@ -587,16 +664,90 @@ def index():
         if result and not error:
             session["analysis_result"] = result
 
+            try:
+                forensic_info = result.get("forensics", {}) or {}
+                sender = forensic_info.get("from", "")
+                receiver = forensic_info.get("to", "")
+
+                if not receiver and message is not None:
+                    try:
+                        receiver = message.get("To", "")
+                    except Exception:
+                        receiver = ""
+
+                subject = forensic_info.get("subject", "")
+                result["threat_level"] = result.get("threat", "UNKNOWN")
+
+                case_id = save_investigation(
+                    result=result,
+                    sender=sender,
+                    receiver=receiver,
+                    subject=subject
+                )
+                session["case_id"] = case_id
+                result["case_id"] = case_id
+                print(f"Investigation saved successfully: {case_id}")
+            except Exception as db_error:
+                print(f"Database save warning: {db_error}")
+
+    try:
+        stats = get_investigation_stats()
+    except Exception as stats_error:
+        print(f"Statistics loading error: {stats_error}")
+        stats = {
+            "total": 0, "phishing": 0, "spam": 0, "safe": 0,
+            "high_risk": 0, "medium_risk": 0, "low_risk": 0,
+            "average_risk": 0
+        }
+
     return render_template(
         "index.html",
         result=result,
         error=error,
-        model_metrics=model_metrics
+        model_metrics=model_metrics,
+        case_id=session.get("case_id"),
+        stats=stats
     )
 
 
 # ============================================================
-# PDF REPORT ROUTE
+# INVESTIGATION HISTORY
+# ============================================================
+
+@app.route("/history", methods=["GET"])
+def investigation_history():
+    try:
+        investigations = get_all_investigations()
+        return render_template(
+            "history.html",
+            investigations=investigations
+        )
+    except Exception as e:
+        print(f"History loading error: {e}")
+        return "Unable to load investigation history.", 500
+
+
+# ============================================================
+# INVESTIGATION DETAILS
+# ============================================================
+
+@app.route("/case/<case_id>", methods=["GET"])
+def investigation_details(case_id):
+    try:
+        investigation = get_investigation(case_id)
+        if not investigation:
+            return "Investigation case not found.", 404
+        return render_template(
+            "case_details.html",
+            investigation=investigation
+        )
+    except Exception as e:
+        print(f"Case details error: {e}")
+        return "Unable to load investigation details.", 500
+
+
+# ============================================================
+# GENERATE PDF REPORT
 # ============================================================
 
 @app.route("/generate-report", methods=["GET"])
@@ -628,4 +779,10 @@ def generate_report():
 # ============================================================
 
 if __name__ == "__main__":
+    try:
+        initialize_database()
+        print("Investigation database initialized successfully!")
+    except Exception as db_error:
+        print(f"WARNING: Database initialization failed: {db_error}")
+
     app.run(debug=False, port=5000)

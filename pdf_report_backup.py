@@ -623,130 +623,12 @@ def generate_pdf_report(result, output_path):
         )
 
     # ========================================================
-    # ATTACHMENT ANALYSIS
-    # ========================================================
-
-    story.extend(
-        _section_title(
-            "5. Attachment Analysis",
-            styles
-        )
-    )
-
-    attachment_data = result.get("attachments", {}) or {}
-    attachments = attachment_data.get("attachments", []) or []
-
-    attachment_summary = [
-        ("Total Attachments", attachment_data.get("attachment_count", 0)),
-        ("Suspicious Attachments", attachment_data.get("suspicious_count", 0)),
-        ("High Risk", attachment_data.get("high_risk_count", 0)),
-        ("Medium Risk", attachment_data.get("medium_risk_count", 0)),
-        ("Overall Attachment Risk", attachment_data.get("overall_risk", "LOW")),
-    ]
-    story.append(_key_value_table(attachment_summary, styles))
-
-    if attachments:
-        attachment_rows = [[
-            Paragraph("<b>Filename</b>", styles["small"]),
-            Paragraph("<b>Type</b>", styles["small"]),
-            Paragraph("<b>Size</b>", styles["small"]),
-            Paragraph("<b>Risk</b>", styles["small"]),
-        ]]
-        for attachment in attachments:
-            attachment_rows.append([
-                Paragraph(_safe(attachment.get("filename")), styles["tiny"]),
-                Paragraph(_safe(attachment.get("extension")), styles["tiny"]),
-                Paragraph(f"{attachment.get('size', 0)} bytes", styles["tiny"]),
-                Paragraph(
-                    f"<b>{_safe(attachment.get('risk'))} ({attachment.get('risk_score', 0)}/100)</b>",
-                    styles["tiny"],
-                ),
-            ])
-
-        attachment_table = Table(
-            attachment_rows,
-            colWidths=[70 * mm, 28 * mm, 32 * mm, 42 * mm],
-            repeatRows=1,
-        )
-        attachment_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f4f6")),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 5),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ]))
-        story.append(attachment_table)
-
-        for attachment in attachments:
-            indicators = attachment.get("indicators", []) or []
-            if indicators:
-                story.append(Spacer(1, 1.5 * mm))
-                story.append(Paragraph(
-                    f"<b>{_safe(attachment.get('filename'))}:</b> " + "; ".join(_safe(x) for x in indicators),
-                    styles["tiny"],
-                ))
-    else:
-        story.append(Paragraph("No email attachments were detected.", styles["body"]))
-
-    # ========================================================
-    # FORENSIC TIMELINE
-    # ========================================================
-
-    story.extend(
-        _section_title(
-            "6. Forensic Timeline",
-            styles
-        )
-    )
-
-    timeline = result.get("timeline", []) or []
-    if timeline:
-        timeline_rows = [[
-            Paragraph("<b>Timestamp</b>", styles["small"]),
-            Paragraph("<b>Event</b>", styles["small"]),
-            Paragraph("<b>Category</b>", styles["small"]),
-            Paragraph("<b>Description</b>", styles["small"]),
-        ]]
-        for event in timeline:
-            timeline_rows.append([
-                Paragraph(_safe(event.get("timestamp")), styles["tiny"]),
-                Paragraph(_safe(event.get("event")), styles["tiny"]),
-                Paragraph(_safe(event.get("category")), styles["tiny"]),
-                Paragraph(_safe(event.get("description")), styles["tiny"]),
-            ])
-        timeline_table = Table(
-            timeline_rows,
-            colWidths=[36 * mm, 39 * mm, 27 * mm, 70 * mm],
-            repeatRows=1,
-        )
-        timeline_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3f4f6")),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
-        story.append(timeline_table)
-    else:
-        story.append(Paragraph("No forensic timeline data is available.", styles["body"]))
-
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        "Timeline timestamps describe local analysis processing steps and should not be interpreted as proof of attacker activity time.",
-        styles["tiny"],
-    ))
-
-    # ========================================================
     # IOC EXTRACTION
     # ========================================================
 
     story.extend(
         _section_title(
-            "7. Indicators of Compromise (IOCs)",
+            "5. Indicators of Compromise (IOCs)",
             styles
         )
     )
@@ -780,7 +662,7 @@ def generate_pdf_report(result, output_path):
 
     story.extend(
         _section_title(
-            "8. URL Threat Analysis",
+            "6. URL Threat Analysis",
             styles
         )
     )
@@ -885,7 +767,7 @@ def generate_pdf_report(result, output_path):
 
     story.extend(
         _section_title(
-            "9. IP Intelligence & Geolocation",
+            "7. IP Intelligence & Geolocation",
             styles
         )
     )
@@ -1030,7 +912,7 @@ def generate_pdf_report(result, output_path):
 
     story.extend(
         _section_title(
-            "10. Investigation Conclusion",
+            "8. Investigation Conclusion",
             styles
         )
     )

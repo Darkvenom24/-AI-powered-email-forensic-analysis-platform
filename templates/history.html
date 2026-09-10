@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Investigation History</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 22px 35px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 25px;
+        }
+
+        .header p {
+            margin-top: 5px;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: white;
+            background: #2563eb;
+
+            padding: 10px 17px;
+            border-radius: 8px;
+
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* =========================
+           MAIN CONTAINER
+        ========================= */
+
+        .container {
+            width: 94%;
+            max-width: 1250px;
+
+            margin: 30px auto;
+        }
+
+        /* =========================
+           TOP CARD
+        ========================= */
+
+        .top-card {
+            background: white;
+
+            border-radius: 12px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 3px 15px rgba(0, 0, 0, 0.07);
+
+            margin-bottom: 20px;
+        }
+
+        .top-card h2 {
+            margin-bottom: 7px;
+        }
+
+        .top-card p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* =========================
+           TABLE
+        ========================= */
+
+        .table-wrapper {
+            background: white;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 3px 15px rgba(0, 0, 0, 0.07);
+
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 850px;
+        }
+
+        th {
+            background: #f8fafc;
+
+            color: #475569;
+
+            text-align: left;
+
+            font-size: 13px;
+
+            padding: 16px;
+
+            border-bottom:
+                1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 15px 16px;
+
+            border-bottom:
+                1px solid #edf2f7;
+
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* =========================
+           CASE ID
+        ========================= */
+
+        .case-id {
+            font-weight: bold;
+
+            color: #2563eb;
+        }
+
+        /* =========================
+           THREAT BADGES
+        ========================= */
+
+        .badge {
+            display: inline-block;
+
+            padding: 5px 10px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+        }
+
+        .high {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .unknown {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        /* =========================
+           PREDICTION
+        ========================= */
+
+        .prediction {
+            font-weight: 600;
+
+            text-transform: uppercase;
+        }
+
+        /* =========================
+           RISK SCORE
+        ========================= */
+
+        .risk-score {
+            font-weight: bold;
+        }
+
+        /* =========================
+           VIEW BUTTON
+        ========================= */
+
+        .view-btn {
+            display: inline-block;
+
+            text-decoration: none;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 8px 13px;
+
+            border-radius: 7px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+        }
+
+        .view-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* =========================
+           EMPTY DATABASE
+        ========================= */
+
+        .empty {
+            text-align: center;
+
+            padding: 60px 20px;
+
+            color: #64748b;
+        }
+
+        .empty-icon {
+            font-size: 42px;
+
+            margin-bottom: 12px;
+        }
+
+        .empty h2 {
+            color: #334155;
+
+            margin-bottom: 8px;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 700px) {
+
+            .header {
+                padding: 18px;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+            .container {
+                width: 96%;
+
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <!-- =========================
+         HEADER
+    ========================= -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>
+                Investigation History
+            </h1>
+
+            <p>
+                Previously analyzed email investigations
+            </p>
+
+        </div>
+
+
+        <a
+            href="/"
+            class="back-btn"
+        >
+            ← Back to Dashboard
+        </a>
+
+    </header>
+
+
+    <!-- =========================
+         MAIN
+    ========================= -->
+
+    <main class="container">
+
+
+        <!-- =========================
+             SUMMARY
+        ========================= -->
+
+        <section class="top-card">
+
+            <h2>
+                Investigation Cases
+            </h2>
+
+            <p>
+
+                Total investigations:
+
+                <strong>
+                    {{ investigations|length }}
+                </strong>
+
+            </p>
+
+        </section>
+
+
+        <!-- =========================
+             INVESTIGATION TABLE
+        ========================= -->
+
+        {% if investigations %}
+
+        <section class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Case ID
+                        </th>
+
+                        <th>
+                            Date & Time
+                        </th>
+
+                        <th>
+                            Sender
+                        </th>
+
+                        <th>
+                            Subject
+                        </th>
+
+                        <th>
+                            Prediction
+                        </th>
+
+                        <th>
+                            Confidence
+                        </th>
+
+                        <th>
+                            Risk Score
+                        </th>
+
+                        <th>
+                            Threat
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for investigation in investigations %}
+
+                    <tr>
+
+
+                        <!-- CASE ID -->
+
+                        <td>
+
+                            <span class="case-id">
+
+                                {{ investigation.case_id }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- DATE -->
+
+                        <td>
+
+                            {{ investigation.timestamp }}
+
+                        </td>
+
+
+                        <!-- SENDER -->
+
+                        <td>
+
+                            {{ investigation.sender or "N/A" }}
+
+                        </td>
+
+
+                        <!-- SUBJECT -->
+
+                        <td>
+
+                            {{ investigation.subject or "No Subject" }}
+
+                        </td>
+
+
+                        <!-- PREDICTION -->
+
+                        <td>
+
+                            <span class="prediction">
+
+                                {{ investigation.prediction or "UNKNOWN" }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- CONFIDENCE -->
+
+                        <td>
+
+                            {{ "%.2f"|format(
+                                investigation.confidence|float
+                            ) }}%
+
+                        </td>
+
+
+                        <!-- RISK SCORE -->
+
+                        <td>
+
+                            <span class="risk-score">
+
+                                {{ investigation.risk_score or 0 }}/100
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- THREAT -->
+
+                        <td>
+
+                            {% set threat =
+                                (investigation.threat_level or "UNKNOWN")
+                                |lower
+                            %}
+
+
+                            {% if threat == "high" %}
+
+                                <span class="badge high">
+                                    HIGH
+                                </span>
+
+
+                            {% elif threat == "medium" %}
+
+                                <span class="badge medium">
+                                    MEDIUM
+                                </span>
+
+
+                            {% elif threat == "low" %}
+
+                                <span class="badge low">
+                                    LOW
+                                </span>
+
+
+                            {% else %}
+
+                                <span class="badge unknown">
+                                    UNKNOWN
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- VIEW DETAILS -->
+
+                        <td>
+
+                            <a
+                                href="{{ url_for(
+                                    'investigation_details',
+                                    case_id=investigation.case_id
+                                ) }}"
+                                class="view-btn"
+                            >
+                                View Details
+                            </a>
+
+                        </td>
+
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+
+        {% else %}
+
+
+        <!-- =========================
+             EMPTY STATE
+        ========================= -->
+
+        <section class="table-wrapper">
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    📂
+                </div>
+
+                <h2>
+                    No Investigations Found
+                </h2>
+
+                <p>
+                    Analyze an email from the dashboard
+                    to create your first investigation case.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        {% endif %}
+
+
+    </main>
+
+</body>
+
+</html>
