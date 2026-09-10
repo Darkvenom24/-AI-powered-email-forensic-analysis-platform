@@ -1,0 +1,410 @@
+[
+  {
+    "dataset_name": "final_emails.csv",
+    "category": "Email Text (NLP)",
+    "rows": 8481,
+    "columns": [
+      "email_text",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "safe": 5000,
+      "phishing": 3000,
+      "spam": 481
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": 0,
+    "leakage_concerns": "None. Cleaned Enron/SpamAssassin/Kaggle emails with balanced multi-class distribution and 0 duplicates.",
+    "quality_status": "High Quality",
+    "used_for_training": true,
+    "reason_for_decision": "Primary multi-class training dataset containing 5,000 safe, 3,000 phishing, and 481 spam emails. Zero text duplicates."
+  },
+  {
+    "dataset_name": "phishing_clean.csv",
+    "category": "Email Text (NLP)",
+    "rows": 6000,
+    "columns": [
+      "email_text",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "safe": 3000,
+      "phishing": 3000
+    },
+    "missing_values": 0,
+    "duplicate_rows": 4,
+    "duplicate_texts": 4,
+    "leakage_concerns": "Minor: 4 duplicate texts. Subsumed inside final_emails.csv with safe emails.",
+    "quality_status": "Good",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded because its samples are already deduplicated and incorporated into final_emails.csv. Training on both would cause train/test duplication."
+  },
+  {
+    "dataset_name": "large_emails.csv",
+    "category": "Email Text (NLP)",
+    "rows": 3049,
+    "columns": [
+      "email_text",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "safe": 2551,
+      "spam": 498
+    },
+    "missing_values": 0,
+    "duplicate_rows": 159,
+    "duplicate_texts": 159,
+    "leakage_concerns": "Contains 159 duplicates. Contains 0 phishing emails (only safe and spam).",
+    "quality_status": "Imbalanced / Incomplete",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded because it has 0 phishing emails, contains duplicate rows, and its unique samples are already integrated into final_emails.csv."
+  },
+  {
+    "dataset_name": "Phishing_validation_emails.csv",
+    "category": "Email Text (Synthetic Validation)",
+    "rows": 2000,
+    "columns": [
+      "Email Text",
+      "Email Type"
+    ],
+    "target_column": "Email Type",
+    "class_distribution": {
+      "Safe Email": 1000,
+      "Phishing Email": 1000
+    },
+    "missing_values": 0,
+    "duplicate_rows": 1900,
+    "duplicate_texts": 1900,
+    "leakage_concerns": "CRITICAL: 1,900 out of 2,000 rows (95%) are duplicates! Only 100 unique templates repeated 20 times each.",
+    "quality_status": "Severely Duplicated / Synthetic",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from training due to massive text duplication (95% duplicate rate) which would cause catastrophic evaluation leakage."
+  },
+  {
+    "dataset_name": "emails.csv",
+    "category": "Email Text (Toy Dataset)",
+    "rows": 15,
+    "columns": [
+      "text",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "safe": 5,
+      "spam": 5,
+      "phishing": 5
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": 0,
+    "leakage_concerns": "Only 15 sample rows.",
+    "quality_status": "Toy / Demo Only",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded due to tiny sample size (15 rows). Intended only as initial development stub."
+  },
+  {
+    "dataset_name": "A_Email_ML_Dataset.csv",
+    "category": "Tabular Feature Dataset",
+    "rows": 1000,
+    "columns": [
+      "email_id",
+      "email_length",
+      "word_count",
+      "html_ratio",
+      "url_count",
+      "ip_count",
+      "attachment_count",
+      "urgency_keyword_count",
+      "credential_request_flag",
+      "financial_request_flag",
+      "is_shortened_url_present",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "0": 503,
+      "1": 497
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "Contains engineered numerical features (urgency, url_count, html_ratio), no raw email text. Not usable for TF-IDF NLP pipeline.",
+    "quality_status": "Tabular Only",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from text ML training because it lacks raw email text. Feature definitions (urgency_keyword_count, credential_request_flag) are utilized in the rule-based Threat Scoring Engine."
+  },
+  {
+    "dataset_name": "F_Authentication_Forensic_Dataset.csv",
+    "category": "Forensic / Auth Metadata",
+    "rows": 1000,
+    "columns": [
+      "email_id",
+      "sender_reply_mismatch",
+      "spf_result",
+      "dkim_result",
+      "dmarc_result",
+      "received_hop_count",
+      "has_auth_results_header",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "0": 503,
+      "1": 497
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "Contains header metadata (SPF, DKIM, DMARC, hops). No email text.",
+    "quality_status": "Tabular Metadata",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from text ML training because it lacks email body text. Authentication and header logic is implemented directly in the Forensic Parser and Threat Scorer."
+  },
+  {
+    "dataset_name": "M6_Attachmen_Dataset.csv",
+    "category": "Attachment Threat Intelligence",
+    "rows": 200,
+    "columns": [
+      "sha256",
+      "filename",
+      "file_type",
+      "mime_type",
+      "file_size_bytes",
+      "signature",
+      "delivery_method",
+      "is_executable",
+      "is_archived",
+      "entropy_score",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "1": 100,
+      "0": 100
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "Entropy score is artificially correlated with label (7.45 for label 1 vs 3.2 for label 0). Not suitable for statistical ML training.",
+    "quality_status": "Threat Intel / IOC Signatures",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from ML training due to artificial entropy distribution. Retained as reference threat intelligence for SHA-256 malware hash and Emotet signature exact lookups."
+  },
+  {
+    "dataset_name": "M6_Attachment_Final.csv",
+    "category": "Attachment Metrics",
+    "rows": 200,
+    "columns": [
+      "attachment_id",
+      "file_size_bytes",
+      "entropy_score",
+      "is_executable",
+      "is_archived",
+      "filename_length",
+      "number_of_dots",
+      "double_extension",
+      "extension_mime_mismatch",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "1": 100,
+      "0": 100
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "Multiple columns are completely NaN (number_of_dots, double_extension, extension_mime_mismatch). Entropy has perfect correlation (r=1.0) with label.",
+    "quality_status": "Unsuitable for ML / Incomplete",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded due to perfect label leakage on entropy and entirely missing columns."
+  },
+  {
+    "dataset_name": "M6_Domain_DNS_Final.csv",
+    "category": "Domain & DNS Intelligence",
+    "rows": 10000,
+    "columns": [
+      "record_id",
+      "domain",
+      "tld",
+      "domain_length",
+      "sld_length",
+      "num_labels",
+      "subdomain_count",
+      "digit_count",
+      "hyphen_count",
+      "entropy",
+      "suspicious_keyword_count",
+      "brand_token_count",
+      "digit_ratio",
+      "hyphen_ratio",
+      "domain_age_days",
+      "rdap_status",
+      "dnssec",
+      "dns_status",
+      "a_count",
+      "aaaa_count",
+      "mx_count",
+      "ns_count",
+      "txt_count",
+      "cname_count",
+      "min_ttl",
+      "max_ttl",
+      "has_spf",
+      "has_dmarc",
+      "label",
+      "source",
+      "source_type",
+      "data_quality_status",
+      "subdomain_length",
+      "max_subdomain_length",
+      "special_character_count",
+      "special_character_ratio",
+      "has_ip_address",
+      "has_punycode",
+      "has_numeric_subdomain",
+      "registrar",
+      "registration_country",
+      "domain_status",
+      "nameserver_count"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "1": 5000,
+      "0": 5000
+    },
+    "missing_values": 30000,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "10 empty/NaN columns at end. High correlation with domain_length and hyphen_count. No email text.",
+    "quality_status": "IOC Reference Data",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from text ML training (no email text). Retained as a 10,000-domain IOC reference dataset for checking suspicious domains, MX record counts, and DNS authentication."
+  },
+  {
+    "dataset_name": "M6_Domain_DNS_Phishing_Dataset.csv",
+    "category": "Domain & DNS Intelligence",
+    "rows": 10000,
+    "columns": [
+      "record_id",
+      "domain",
+      "tld",
+      "domain_length",
+      "sld_length",
+      "num_labels",
+      "subdomain_count",
+      "digit_count",
+      "hyphen_count",
+      "entropy",
+      "suspicious_keyword_count",
+      "brand_token_count",
+      "digit_ratio",
+      "hyphen_ratio",
+      "domain_age_days",
+      "rdap_status",
+      "dnssec",
+      "dns_status",
+      "a_count",
+      "aaaa_count",
+      "mx_count",
+      "ns_count",
+      "txt_count",
+      "cname_count",
+      "min_ttl",
+      "max_ttl",
+      "has_spf",
+      "has_dmarc",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "1": 5000,
+      "0": 5000
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "Domain features only, no email text.",
+    "quality_status": "IOC Reference Data",
+    "used_for_training": false,
+    "reason_for_decision": "Subsumed by M6_Domain_DNS_Final.csv."
+  },
+  {
+    "dataset_name": "M6_URL.csv",
+    "category": "URL Threat Intelligence",
+    "rows": 15000,
+    "columns": [
+      "url",
+      "label"
+    ],
+    "target_column": "label",
+    "class_distribution": {
+      "1": 7500,
+      "0": 7500
+    },
+    "missing_values": 0,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "URL-only dataset, not email body text.",
+    "quality_status": "High Quality IOC Feed",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from email text NLP training because it consists only of URLs. Utilized as an active IOC threat database for fast exact-match URL reputation checking."
+  },
+  {
+    "dataset_name": "M6_IP_URL_Threat_Intelligence_Dataset.xlsx",
+    "category": "Threat Intelligence Feeds (IP & URL)",
+    "rows": 200,
+    "columns": {
+      "IP_Detection": [
+        "indicator_id",
+        "ip_address",
+        "indicator_type",
+        "label",
+        "confidence",
+        "source",
+        "source_level",
+        "detection_use",
+        "country",
+        "region",
+        "city",
+        "latitude",
+        "longitude",
+        "asn",
+        "organization",
+        "last_updated"
+      ],
+      "Phishing_URL_Detection": [
+        "indicator_id",
+        "url",
+        "domain",
+        "tld",
+        "scheme",
+        "url_length",
+        "host_is_ip",
+        "has_long_subdomain",
+        "suspicious_keyword",
+        "label",
+        "confidence",
+        "source",
+        "detection_use",
+        "collected_date"
+      ]
+    },
+    "target_column": "label",
+    "class_distribution": {
+      "IP_Detection_label_1": 100,
+      "URL_Detection_label_1": 100
+    },
+    "missing_values": 760,
+    "duplicate_rows": 0,
+    "duplicate_texts": null,
+    "leakage_concerns": "External threat feed indicators (MISP / IPsum Level 6 & OpenPhish feeds).",
+    "quality_status": "High Quality External Threat Intel",
+    "used_for_training": false,
+    "reason_for_decision": "Excluded from email text NLP training. Utilized as authoritative threat intelligence IOC feeds for runtime IP and URL reputation queries."
+  }
+]

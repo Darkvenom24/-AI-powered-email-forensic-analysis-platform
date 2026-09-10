@@ -1,0 +1,39 @@
+======================================================================
+SIH26106 EMAIL THREAT DETECTION MODEL AUDIT & EVALUATION REPORT
+======================================================================
+Generated at: 2026-09-11T00:00:50.727945
+Dataset Used: data/final_emails.csv
+Random Seed:  42
+Total Samples: 8469 (Train: 5928, Val: 1270, Test: 1271)
+
+Model Architecture:
+  Pipeline: TfidfVectorizer -> LogisticRegression
+  TF-IDF: max_features=20000, ngram_range=(1, 2), min_df=2, sublinear_tf=True
+  Classifier: C=2.0, class_weight=None, solver=lbfgs
+
+Overall Test Evaluation Metrics (Held-Out Unseen Data):
+  Accuracy:                  94.96%
+  Weighted Precision:        94.89%
+  Weighted Recall:           94.96%
+  Weighted F1-Score:         94.82%
+  Macro F1-Score:            88.72%
+  ROC-AUC (One-vs-Rest):     0.9919
+  Phishing ROC-AUC:          0.992
+
+Phishing Detection Specialization:
+  Phishing Recall:           94.88%
+  Phishing Precision:        92.01%
+  Phishing F1-Score:         93.42%
+  False Negatives:           23 out of 449 phishing emails
+  False Positives:           37
+
+Per-Class Breakdown:
+  SAFE      : Precision=97.22%, Recall=97.87%, F1=97.54%, Support=750
+  SPAM      : Precision=88.68%, Recall=65.28%, F1=75.2%, Support=72
+  PHISHING  : Precision=92.01%, Recall=94.88%, F1=93.42%, Support=449
+
+Confusion Matrix (Rows=Actual, Columns=Predicted [Safe, Spam, Phishing]):
+  Safe:     [734, 0, 16]
+  Spam:     [4, 47, 21]
+  Phishing: [17, 6, 426]
+======================================================================
