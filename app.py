@@ -1,5 +1,10 @@
 from flask import Flask, render_template, request, session, send_file, jsonify
-from flask_cors import CORS
+try:
+    from flask_cors import CORS
+    has_cors = True
+except ImportError:
+    has_cors = False
+
 try:
     import joblib
 except ImportError:
@@ -9,9 +14,12 @@ import os
 import tempfile
 import json
 from datetime import datetime
-from dotenv import load_dotenv
 
-load_dotenv(override=True)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
 
 from src.url_analyzer import extract_urls, analyze_url
 from src.forensics import (
@@ -50,7 +58,27 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, "templates"),
     static_folder=os.path.join(BASE_DIR, "static")
 )
-CORS(app)  # Enable Cross-Origin Resource Sharing for Vercel / external frontends
+if has_cors:
+    try:
+        CORS(app)
+    except Exception:
+        pass
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+    return response
+
+@app.before_request
+def handle_options_request():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+        return response
 
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",

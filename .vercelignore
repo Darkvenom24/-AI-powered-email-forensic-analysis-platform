@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+venv/
+__pycache__/
+*.pyc
+data/*.csv
+data/*.xlsx
+tests/

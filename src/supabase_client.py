@@ -1,10 +1,11 @@
 import os
 import json
 from datetime import datetime
-from dotenv import load_dotenv
-
-# Load .env if present
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Initialize Supabase client lazily
 _supabase_client = None
