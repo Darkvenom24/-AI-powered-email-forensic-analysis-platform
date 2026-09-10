@@ -163,5 +163,81 @@ class TestFileSecurityValidation(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn("executable", html.lower())
 
+    def test_16_aadhaar_pdf_rejected(self):
+        """Upload of an Aadhaar PDF document must return 400 DOCUMENT_FILE_REJECTED."""
+        data = {
+            "email_file": (io.BytesIO(self.pdf_bytes), "eaadhaar.pdf")
+        }
+        response = self.app.post("/api/analyze", data=data, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 400)
+        res = response.get_json()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["code"], "DOCUMENT_FILE_REJECTED")
+
+    def test_17_aadhaar_photo_rejected(self):
+        """Upload of an Aadhaar card photo/image must return 400 IMAGE_FILE_REJECTED."""
+        jpg_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00" + b"image_data" * 20
+        data = {
+            "email_file": (io.BytesIO(jpg_bytes), "my_aadhaar_card.jpg")
+        }
+        response = self.app.post("/api/analyze", data=data, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 400)
+        res = response.get_json()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["code"], "IMAGE_FILE_REJECTED")
+
+    def test_18_disguised_aadhaar_rejected(self):
+        """Disguised Aadhaar card text renamed to .eml must be rejected as IDENTITY_DOCUMENT_REJECTED."""
+        aadhaar_eml = (
+            b"GOVERNMENT OF INDIA\n"
+            b"Unique Identification Authority of India\n"
+            b"Aadhaar No: 1234 5678 9012\n"
+            b"Name: Test User\n"
+            b"Email: help@uidai.gov.in\n"
+        )
+        data = {
+            "email_file": (io.BytesIO(aadhaar_eml), "aadhaar.eml")
+        }
+        response = self.app.post("/api/analyze", data=data, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 400)
+        res = response.get_json()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["code"], "IDENTITY_DOCUMENT_REJECTED")
+
+    def test_19_aadhaar_text_payload_rejected(self):
+        """Pasted Aadhaar card text payload must be rejected as IDENTITY_DOCUMENT_REJECTED."""
+        payload = {
+            "email_text": (
+                "GOVERNMENT OF INDIA\n"
+                "Unique Identification Authority of India\n"
+                "Aadhaar Number: 9876 5432 1098\n"
+                "Name: Ramesh Kumar\n"
+                "DOB: 12/05/1992\n"
+                "help@uidai.gov.in"
+            )
+        }
+        response = self.app.post("/api/analyze", json=payload)
+        self.assertEqual(response.status_code, 400)
+        res = response.get_json()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["code"], "IDENTITY_DOCUMENT_REJECTED")
+
+    def test_20_pan_card_rejected(self):
+        """PAN Card document/text must be rejected as IDENTITY_DOCUMENT_REJECTED."""
+        pan_payload = {
+            "email_text": (
+                "INCOME TAX DEPARTMENT\n"
+                "GOVT. OF INDIA\n"
+                "Permanent Account Number Card\n"
+                "PAN: ABCDE1234F\n"
+                "Name: Suresh Patel\n"
+            )
+        }
+        response = self.app.post("/api/analyze", json=pan_payload)
+        self.assertEqual(response.status_code, 400)
+        res = response.get_json()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["code"], "IDENTITY_DOCUMENT_REJECTED")
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

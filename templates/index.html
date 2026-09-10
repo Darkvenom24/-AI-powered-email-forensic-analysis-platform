@@ -148,9 +148,9 @@
 
     <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/style.css?v=sih_2.1">
+    <link rel="stylesheet" href="/static/style.css?v=sih_2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=sih_2.1">
 </head>
 <body>
 
@@ -672,8 +672,8 @@
     <script>
         window.INITIAL_RESULT = {{ result | tojson if result else 'null' }};
     </script>
-    <script src="/dashboard.js"></script>
-    <script src="/static/dashboard.js"></script>
-    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+    <script src="/dashboard.js?v=sih_2.1"></script>
+    <script src="/static/dashboard.js?v=sih_2.1"></script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}?v=sih_2.1"></script>
 </body>
 </html>

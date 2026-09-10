@@ -515,11 +515,26 @@ function setupEventListeners() {
         const extMatch = lowerName.match(/\.([a-z0-9_-]+)$/);
         const ext = extMatch ? extMatch[1] : '';
 
+        const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'tif', 'svg', 'ico', 'heic', 'jfif', 'avif'];
+        const DOC_EXTS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'xml', 'csv', 'tsv', 'rtf', 'odt'];
+
         if (ext !== 'eml') {
             if (DANGEROUS_EXTENSIONS.includes(ext)) {
                 return {
                     isValid: false,
                     error: `⛔ Security Violation: "${fileName}" is an executable or dangerous file type (.${ext}). Executable binaries cannot be analyzed as email files. Only RFC 822 (.eml) files are permitted.`
+                };
+            }
+            if (IMAGE_EXTS.includes(ext)) {
+                return {
+                    isValid: false,
+                    error: `🖼️ Image File Rejected: "${fileName}" is an image file (.${ext}). Aadhaar card photos, screenshots, and graphics cannot be analyzed as emails. Only RFC 822 (.eml) files are supported.`
+                };
+            }
+            if (DOC_EXTS.includes(ext)) {
+                return {
+                    isValid: false,
+                    error: `📄 Document Rejected: "${fileName}" is a document (.${ext}). Aadhaar card PDFs, identity files, and spreadsheets cannot be ingested. Only RFC 822 (.eml) files are supported.`
                 };
             }
             return {
@@ -528,7 +543,7 @@ function setupEventListeners() {
             };
         }
 
-        // 4. Double extension check (e.g. payload.exe.eml)
+        // 4. Double extension check (e.g. payload.exe.eml, aadhaar.pdf.eml)
         const tokens = lowerName.split('.');
         if (tokens.length > 2) {
             const innerExt = tokens[tokens.length - 2];
@@ -536,6 +551,12 @@ function setupEventListeners() {
                 return {
                     isValid: false,
                     error: `⛔ Security Alert: Double extension detected with dangerous payload signature (.${innerExt}.${ext}). Disguised executable files are strictly prohibited.`
+                };
+            }
+            if (DOC_EXTS.includes(innerExt) || IMAGE_EXTS.includes(innerExt)) {
+                return {
+                    isValid: false,
+                    error: `⛔ Security Alert: Double extension detected with disguised document/image signature (.${innerExt}.${ext}). Disguised files are prohibited.`
                 };
             }
         }
@@ -590,6 +611,30 @@ function setupEventListeners() {
                 };
             }
 
+            // JPEG image: 0xFF 0xD8 0xFF
+            if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+                return {
+                    isValid: false,
+                    error: `🖼️ JPEG Image Detected: "${fileName}" is a photo/scan, not an email message. Only RFC 822 (.eml) files are permitted.`
+                };
+            }
+
+            // PNG image: 0x89 0x50 0x4E 0x47
+            if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                return {
+                    isValid: false,
+                    error: `🖼️ PNG Image Detected: "${fileName}" is a graphics image, not an email message. Only RFC 822 (.eml) files are permitted.`
+                };
+            }
+
+            // BMP image: 'BM'
+            if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4D) {
+                return {
+                    isValid: false,
+                    error: `🖼️ Bitmap Image Detected: "${fileName}" is a BMP image file. Only RFC 822 (.eml) files are permitted.`
+                };
+            }
+
             // Null-byte density check
             let nullCount = 0;
             for (let i = 0; i < bytes.length; i++) {
@@ -605,17 +650,29 @@ function setupEventListeners() {
             console.warn("Could not read file slice for magic byte inspection:", e);
         }
 
-        // 6. Text RFC 822 header inspection
+        // 6. Text RFC 822 header and Identity document inspection
         try {
             const textChunk = await file.slice(0, 2048).text();
+            const lowerChunk = textChunk.toLowerCase();
             const headerRegex = /^(?:From|To|Subject|Date|Received|Message-ID|Return-Path|MIME-Version|Content-Type|Delivered-To|DKIM-Signature|Authentication-Results|X-[a-zA-Z0-9_-]+)\s*:/im;
             const hasHeader = headerRegex.test(textChunk);
-            const hasEmailCue = textChunk.includes('@') && textChunk.trim().length > 20;
+            const hasFromEmail = /^From\s*:\s*.+@.+/im.test(textChunk);
 
-            if (!hasHeader && !hasEmailCue) {
+            // Identity document inspection (Aadhaar, PAN)
+            const isAadhaar = lowerChunk.includes('aadhaar') || lowerChunk.includes('uidai') || lowerChunk.includes('mera aadhaar') || lowerChunk.includes('help@uidai.gov.in') || /\b\d{4}\s\d{4}\s\d{4}\b/.test(textChunk);
+            const isPan = lowerChunk.includes('income tax department') || lowerChunk.includes('permanent account number') || /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/.test(textChunk);
+
+            if ((isAadhaar || isPan) && !hasFromEmail) {
                 return {
                     isValid: false,
-                    error: `⚠️ Invalid Email Structure: "${fileName}" does not contain standard RFC 822 email headers (e.g., From, To, Subject, Date) or readable email content.`
+                    error: `🪪 Identity Document Detected: "${fileName}" appears to be an Indian Aadhaar Card or Identity document. Personal identity records cannot be analyzed as emails.`
+                };
+            }
+
+            if (!hasHeader) {
+                return {
+                    isValid: false,
+                    error: `⚠️ Invalid Email Structure: "${fileName}" does not contain standard RFC 822 email headers (e.g., From, To, Subject, Date). Non-email files cannot be analyzed.`
                 };
             }
         } catch (e) {
@@ -789,10 +846,20 @@ function setupEventListeners() {
     if (emailTextInput) {
         emailTextInput.addEventListener('input', () => {
             const val = emailTextInput.value;
+            const lowerVal = val.toLowerCase();
+            const isAadhaar = lowerVal.includes('aadhaar') || lowerVal.includes('uidai') || lowerVal.includes('mera aadhaar') || lowerVal.includes('help@uidai.gov.in') || /\b\d{4}\s\d{4}\s\d{4}\b/.test(val);
+            const isPan = lowerVal.includes('income tax department') || lowerVal.includes('permanent account number') || /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/.test(val);
+            const hasFromEmail = /^From\s*:\s*.+@.+/im.test(val);
+
             if (val.includes('\x00')) {
                 showValidationFeedback('error', '⛔ Binary data detected in text area. Executable payloads cannot be pasted.');
                 if (textareaFeedback) {
                     textareaFeedback.innerHTML = '<span style="color:#ef4444;">Binary payload detected!</span>';
+                }
+            } else if ((isAadhaar || isPan) && !hasFromEmail) {
+                showValidationFeedback('error', '🪪 Identity Document Detected: Pasted text appears to be an Indian Aadhaar / Identity document. The forensic engine analyzes RFC 822 emails.');
+                if (textareaFeedback) {
+                    textareaFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Identity document detected (Aadhaar/PAN)</span>';
                 }
             } else if (val.trim().length > 0) {
                 if (textareaFeedback) {
@@ -822,8 +889,17 @@ function setupEventListeners() {
                     return;
                 }
             } else if (textVal) {
+                const lowerText = textVal.toLowerCase();
+                const isAadhaar = lowerText.includes('aadhaar') || lowerText.includes('uidai') || lowerText.includes('mera aadhaar') || lowerText.includes('help@uidai.gov.in') || /\b\d{4}\s\d{4}\s\d{4}\b/.test(textVal);
+                const isPan = lowerText.includes('income tax department') || lowerText.includes('permanent account number') || /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/.test(textVal);
+                const hasFromEmail = /^From\s*:\s*.+@.+/im.test(textVal);
+
                 if (textVal.includes('\x00')) {
                     showValidationFeedback('error', '⛔ Binary payload detected in text input. Cannot analyze binary executables.');
+                    return;
+                }
+                if ((isAadhaar || isPan) && !hasFromEmail) {
+                    showValidationFeedback('error', '🪪 Identity Document Rejected: Pasted text contains Aadhaar Card / Identity records. Personal documents cannot be ingested as email evidence.');
                     return;
                 }
                 if (textVal.length < 15) {
