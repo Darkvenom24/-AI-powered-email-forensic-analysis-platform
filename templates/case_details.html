@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Details - {{ investigation.case_id }}</title>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+        .header {
+            background: #111827;
+            color: white;
+            padding: 22px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+        .header h1 { font-size: 25px; }
+        .header p { margin-top: 6px; color: #cbd5e1; font-size: 14px; }
+        .header-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .history-btn { background: #2563eb; }
+        .dashboard-btn { background: #475569; }
+        .btn:hover { opacity: .88; }
+
+        .container { width: 94%; max-width: 1250px; margin: 30px auto; }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+        .summary-card, .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,.07);
+        }
+        .summary-card { padding: 20px; }
+        .summary-card h4 {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .summary-card .value { font-size: 21px; font-weight: bold; }
+
+        .section {
+            padding: 23px;
+            margin-bottom: 22px;
+        }
+        .section h2 {
+            font-size: 19px;
+            margin-bottom: 18px;
+            color: #111827;
+        }
+        .section h3 { margin: 18px 0 10px; font-size: 15px; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .info-item {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .info-item strong {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .info-item span { font-size: 14px; word-break: break-word; }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .high { background: #fee2e2; color: #b91c1c; }
+        .medium { background: #fef3c7; color: #92400e; }
+        .low { background: #dcfce7; color: #166534; }
+        .unknown { background: #e2e8f0; color: #475569; }
+
+        .reason {
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 11px 14px;
+            margin-bottom: 9px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .safe-message {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 12px 14px;
+            border-radius: 6px;
+        }
+
+        .auth-grid, .ioc-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .auth-grid { grid-template-columns: repeat(3, 1fr); }
+        .ioc-grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 20px; }
+
+        .auth-card, .ioc-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 17px;
+            text-align: center;
+        }
+        .auth-card h3 { margin: 0 0 10px; font-size: 14px; }
+        .pass { color: #15803d; font-weight: bold; }
+        .fail { color: #dc2626; font-weight: bold; }
+        .not-found { color: #64748b; font-weight: bold; }
+
+        .ioc-card .number {
+            font-size: 25px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .ioc-card .label {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .data-list { list-style: none; }
+        .data-list li {
+            background: #f8fafc;
+            padding: 11px 14px;
+            border-radius: 7px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            word-break: break-word;
+        }
+        .empty-data { color: #64748b; font-size: 14px; }
+
+        .attachment {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .attachment p { margin-top: 5px; font-size: 13px; }
+        .attachment-risk { margin-top: 8px; font-size: 13px; }
+
+        .timeline {
+            position: relative;
+            margin-left: 10px;
+            padding-left: 25px;
+            border-left: 2px solid #cbd5e1;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 22px;
+        }
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #2563eb;
+            left: -32px;
+            top: 5px;
+        }
+        .timeline-time {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .timeline-event { font-weight: bold; margin-bottom: 5px; }
+        .timeline-category {
+            display: inline-block;
+            font-size: 11px;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 3px 7px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+        }
+        .timeline-description { color: #475569; font-size: 13px; }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .summary { grid-template-columns: repeat(2, 1fr); }
+            .auth-grid { grid-template-columns: 1fr; }
+            .ioc-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 650px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .summary, .info-grid, .ioc-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h1>🔍 Investigation Case</h1>
+        <p>Case ID: <strong>{{ investigation.case_id }}</strong></p>
+    </div>
+
+    <div class="header-buttons">
+        <a href="/history" class="btn history-btn">← Investigation History</a>
+        <a href="/" class="btn dashboard-btn">Dashboard</a>
+    </div>
+</header>
+
+<main class="container">
+
+    {% set threat = (investigation.threat_level or "UNKNOWN")|lower %}
+
+    <section class="summary">
+
+        <div class="summary-card">
+            <h4>CASE ID</h4>
+            <div class="value">{{ investigation.case_id }}</div>
+        </div>
+
+        <div class="summary-card">
+            <h4>ML PREDICTION</h4>
+            <div class="value">{{ investigation.prediction or "UNKNOWN" }}</div>
+        </div>
+
+        <div class="summary-card">
+            <h4>CONFIDENCE</h4>
+            <div class="value">{{ "%.2f"|format(investigation.confidence|float) }}%</div>
+        </div>
+
+        <div class="summary-card">
+            <h4>RISK / THREAT</h4>
+            <div class="value">
+                {{ investigation.risk_score or 0 }}/100
+                <br><br>
+
+                {% if "high" in threat %}
+                    <span class="badge high">HIGH RISK</span>
+                {% elif "medium" in threat %}
+                    <span class="badge medium">MEDIUM RISK</span>
+                {% elif "low" in threat %}
+                    <span class="badge low">LOW RISK</span>
+                {% else %}
+                    <span class="badge unknown">UNKNOWN</span>
+                {% endif %}
+            </div>
+        </div>
+
+    </section>
+
+
+    <section class="section">
+        <h2>📧 Email Information</h2>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>Sender</strong>
+                <span>{{ investigation.sender or "N/A" }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Receiver</strong>
+                <span>{{ investigation.receiver or "N/A" }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Subject</strong>
+                <span>{{ investigation.subject or "No Subject" }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Analysis Date</strong>
+                <span>{{ investigation.timestamp }}</span>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <h2>⚠️ Risk Assessment</h2>
+
+        {% if investigation.risk_reasons %}
+            {% for reason in investigation.risk_reasons %}
+                <div class="reason">⚠️ {{ reason }}</div>
+            {% endfor %}
+        {% else %}
+            <div class="safe-message">
+                No major risk indicators were recorded.
+            </div>
+        {% endif %}
+    </section>
+
+
+    {% set forensic = investigation.forensic_data or {} %}
+
+    <section class="section">
+        <h2>🕵️ Email Forensics</h2>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>From</strong>
+                <span>{{ forensic.get("from", "N/A") }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Reply-To</strong>
+                <span>{{ forensic.get("reply_to", "N/A") }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Return Path</strong>
+                <span>{{ forensic.get("return_path", "N/A") }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Subject</strong>
+                <span>{{ forensic.get("subject", "N/A") }}</span>
+            </div>
+
+            <div class="info-item">
+                <strong>Message ID</strong>
+                <span>{{ forensic.get("message_id", "N/A") }}</span>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <h2>🛡️ Email Authentication</h2>
+
+        {% set spf = forensic.get("spf", "Not Found") %}
+        {% set dkim = forensic.get("dkim", "Not Found") %}
+        {% set dmarc = forensic.get("dmarc", "Not Found") %}
+
+        <div class="auth-grid">
+
+            <div class="auth-card">
+                <h3>SPF</h3>
+                {% if spf|string|lower == "pass" %}
+                    <div class="pass">✓ PASS</div>
+                {% elif spf|string|lower == "fail" %}
+                    <div class="fail">✗ FAIL</div>
+                {% else %}
+                    <div class="not-found">{{ spf }}</div>
+                {% endif %}
+            </div>
+
+            <div class="auth-card">
+                <h3>DKIM</h3>
+                {% if dkim|string|lower == "pass" %}
+                    <div class="pass">✓ PASS</div>
+                {% elif dkim|string|lower == "fail" %}
+                    <div class="fail">✗ FAIL</div>
+                {% else %}
+                    <div class="not-found">{{ dkim }}</div>
+                {% endif %}
+            </div>
+
+            <div class="auth-card">
+                <h3>DMARC</h3>
+                {% if dmarc|string|lower == "pass" %}
+                    <div class="pass">✓ PASS</div>
+                {% elif dmarc|string|lower == "fail" %}
+                    <div class="fail">✗ FAIL</div>
+                {% else %}
+                    <div class="not-found">{{ dmarc }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+    </section>
+
+
+    <section class="section">
+        <h2>🚨 Forensic Indicators</h2>
+
+        {% set indicators = forensic.get("indicators", []) %}
+
+        {% if indicators %}
+            <ul class="data-list">
+                {% for indicator in indicators %}
+                    <li>⚠️ {{ indicator }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-data">No forensic indicators recorded.</p>
+        {% endif %}
+    </section>
+
+
+    {% set iocs = investigation.ioc_data or {} %}
+
+    <section class="section">
+        <h2>🔎 Indicators of Compromise (IOC)</h2>
+
+        <div class="ioc-grid">
+            <div class="ioc-card">
+                <div class="number">{{ iocs.get("url_count", 0) }}</div>
+                <div class="label">URLs</div>
+            </div>
+
+            <div class="ioc-card">
+                <div class="number">{{ iocs.get("ip_count", 0) }}</div>
+                <div class="label">IP Addresses</div>
+            </div>
+
+            <div class="ioc-card">
+                <div class="number">{{ iocs.get("email_count", 0) }}</div>
+                <div class="label">Email Addresses</div>
+            </div>
+
+            <div class="ioc-card">
+                <div class="number">{{ iocs.get("domain_count", 0) }}</div>
+                <div class="label">Domains</div>
+            </div>
+        </div>
+
+        <h3>URLs</h3>
+
+        {% if iocs.get("urls") %}
+            <ul class="data-list">
+                {% for url in iocs.get("urls", []) %}
+                    <li>{{ url }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-data">No URLs detected.</p>
+        {% endif %}
+
+        <h3>IP Addresses</h3>
+
+        {% if iocs.get("ips") %}
+            <ul class="data-list">
+                {% for ip in iocs.get("ips", []) %}
+                    <li>{{ ip }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-data">No IP addresses detected.</p>
+        {% endif %}
+
+        <h3>Domains</h3>
+
+        {% if iocs.get("domains") %}
+            <ul class="data-list">
+                {% for domain in iocs.get("domains", []) %}
+                    <li>{{ domain }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-data">No domains detected.</p>
+        {% endif %}
+    </section>
+
+
+    {% set attachments = investigation.attachment_data or {} %}
+    {% set attachment_list = attachments.get("attachments", []) %}
+
+    <section class="section">
+        <h2>📎 Attachment Analysis</h2>
+
+        {% if attachment_list %}
+
+            {% for attachment in attachment_list %}
+
+                <div class="attachment">
+
+                    <strong>
+                        {{ attachment.get("filename", "Unknown File") }}
+                    </strong>
+
+                    <p>
+                        MIME Type:
+                        {{ attachment.get("mime_type", "N/A") }}
+                    </p>
+
+                    <p>
+                        Size:
+                        {{ attachment.get("size", 0) }} bytes
+                    </p>
+
+                    <p>
+                        Extension:
+                        {{ attachment.get("extension", "N/A") }}
+                    </p>
+
+                    <p>
+                        Risk Score:
+                        {{ attachment.get("risk_score", 0) }}/100
+                    </p>
+
+                    <div class="attachment-risk">
+                        Risk:
+                        <strong>
+                            {{ attachment.get("risk", "UNKNOWN") }}
+                        </strong>
+                    </div>
+
+                    {% if attachment.get("double_extension") %}
+                        <p>⚠️ Double extension detected</p>
+                    {% endif %}
+
+                    {% if attachment.get("indicators") %}
+                        <p>
+                            Indicators:
+                            {{ attachment.get("indicators")|join(", ") }}
+                        </p>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p class="empty-data">
+                No attachments were detected.
+            </p>
+
+        {% endif %}
+    </section>
+
+
+    <!-- IMPORTANT:
+         build_forensic_timeline() returns a LIST, not a dictionary.
+         Therefore we iterate directly over timeline_data.
+    -->
+
+    {% set timeline = investigation.timeline_data or [] %}
+
+    <section class="section">
+
+        <h2>🕐 Forensic Timeline</h2>
+
+        {% if timeline %}
+
+            <div class="timeline">
+
+                {% for event in timeline %}
+
+                    <div class="timeline-item">
+
+                        <div class="timeline-time">
+                            {{ event.get("timestamp", "N/A") }}
+                        </div>
+
+                        <div class="timeline-event">
+                            {{ event.get("event", "Analysis Event") }}
+                        </div>
+
+                        <div class="timeline-category">
+                            {{ event.get("category", "Analysis") }}
+                        </div>
+
+                        <div class="timeline-description">
+                            {{ event.get("description", "") }}
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+            <p class="empty-data" style="margin-top:18px;">
+                Timeline timestamps represent local analysis processing
+                times, not the attacker's activity time.
+            </p>
+
+        {% else %}
+
+            <p class="empty-data">
+                No forensic timeline events recorded.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+</main>
+
+
+<footer>
+    AI Email Threat Detection & Forensic Analysis Platform
+    <br>
+    Investigation Case: {{ investigation.case_id }}
+</footer>
+
+</body>
+</html>

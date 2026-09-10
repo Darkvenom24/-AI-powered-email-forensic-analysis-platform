@@ -1048,22 +1048,9 @@ def index():
                     ""
                 )
 
-                if not receiver and message is not None:
-                    try:
-                        receiver = message.get("To", "")
-                    except Exception:
-                        receiver = ""
-
                 subject = forensic_info.get(
                     "subject",
                     ""
-                )
-
-                # database.py expects a "threat_level" field.
-                # The analysis result uses "threat", so normalize it here.
-                result["threat_level"] = result.get(
-                    "threat",
-                    "UNKNOWN"
                 )
 
                 case_id = save_investigation(
@@ -1100,8 +1087,7 @@ def index():
         "index.html",
         result=result,
         error=error,
-        model_metrics=model_metrics,
-        case_id=session.get("case_id")
+        model_metrics=model_metrics
     )
 
 # ============================================================
