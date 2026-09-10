@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, send_file, jsonify
+from flask import Flask, render_template, request, session, send_file, jsonify, send_from_directory
 try:
     from flask_cors import CORS
     has_cors = True
@@ -79,6 +79,31 @@ def handle_options_request():
         response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
         response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
         return response
+
+@app.route("/static/<path:filename>")
+def serve_static(filename):
+    for folder in ["public/static", "static", "public"]:
+        fdir = os.path.join(BASE_DIR, folder)
+        target = os.path.join(fdir, filename)
+        if os.path.exists(target):
+            return send_from_directory(fdir, filename)
+    return jsonify({"error": f"Static file {filename} not found"}), 404
+
+@app.route("/style.css")
+def serve_root_style():
+    for folder in ["public", "static", "public/static"]:
+        fpath = os.path.join(BASE_DIR, folder, "style.css")
+        if os.path.exists(fpath):
+            return send_file(fpath, mimetype="text/css")
+    return jsonify({"error": "style.css not found"}), 404
+
+@app.route("/dashboard.js")
+def serve_root_js():
+    for folder in ["public", "static", "public/static"]:
+        fpath = os.path.join(BASE_DIR, folder, "dashboard.js")
+        if os.path.exists(fpath):
+            return send_file(fpath, mimetype="application/javascript")
+    return jsonify({"error": "dashboard.js not found"}), 404
 
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
