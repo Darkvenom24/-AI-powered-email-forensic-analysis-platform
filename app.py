@@ -1,8 +1,12 @@
 from flask import Flask, render_template, request, session, send_file, jsonify
 from flask_cors import CORS
-import joblib
+try:
+    import joblib
+except ImportError:
+    joblib = None
 import re
 import os
+import tempfile
 import json
 from datetime import datetime
 from dotenv import load_dotenv
@@ -39,7 +43,13 @@ from src.sample_presets import get_all_presets, get_preset
 # FLASK APP SETUP
 # ============================================================
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static")
+)
 CORS(app)  # Enable Cross-Origin Resource Sharing for Vercel / external frontends
 
 app.secret_key = os.environ.get(
@@ -760,7 +770,7 @@ def api_export_report():
         return jsonify({"error": "No analysis result found. Please analyze an email first."}), 400
 
     try:
-        reports_dir = "reports"
+        reports_dir = os.path.join(tempfile.gettempdir(), "reports") if os.environ.get("VERCEL") else "reports"
         os.makedirs(reports_dir, exist_ok=True)
         pdf_path = os.path.join(reports_dir, "email_forensic_report.pdf")
         generate_pdf_report(result, pdf_path)
@@ -805,7 +815,7 @@ def generate_report():
     if not result:
         return "No analysis result available. Please analyze an email first."
     try:
-        reports_dir = "reports"
+        reports_dir = os.path.join(tempfile.gettempdir(), "reports") if os.environ.get("VERCEL") else "reports"
         os.makedirs(reports_dir, exist_ok=True)
         pdf_path = os.path.join(reports_dir, "email_forensic_report.pdf")
         generate_pdf_report(result, pdf_path)
