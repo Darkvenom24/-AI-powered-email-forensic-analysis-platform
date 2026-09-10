@@ -281,8 +281,16 @@ function updateDashboardUI(data) {
     // 1. Gauge
     updateGauge(data.risk_score, data.threat);
 
-    // 2. Sender / Recipient / Domain / URL
+    // 2. Subject / Sender / Recipient / Domain / URL
     const forensics = data.forensics || {};
+    const subjVal = (forensics.subject && forensics.subject !== 'Not Found')
+        ? forensics.subject
+        : (data.subject || 'SIMULATED PHISHING TEST — NO ACTION REQUIRED');
+    const subjEl = document.getElementById('card-subject');
+    const headerSubj = document.getElementById('header-subject');
+    if (subjEl) subjEl.textContent = subjVal;
+    if (headerSubj) headerSubj.textContent = subjVal;
+
     const senderEl = document.getElementById('card-sender');
     if (senderEl) senderEl.textContent = forensics.from || data.sender || 'Not Found';
 
@@ -503,7 +511,11 @@ function setupEventListeners() {
     // Export PDF Report buttons
     document.querySelectorAll('.btn-export-report').forEach(btn => {
         btn.addEventListener('click', () => {
-            window.location.href = '/api/export-report';
+            if (currentResult && currentResult.case_id) {
+                window.location.href = `/api/export-report?case_id=${encodeURIComponent(currentResult.case_id)}`;
+            } else {
+                window.location.href = '/api/export-report';
+            }
         });
     });
 

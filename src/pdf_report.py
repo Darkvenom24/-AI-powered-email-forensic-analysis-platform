@@ -21,10 +21,15 @@ from reportlab.platypus import (
 # ============================================================
 
 def _safe(value, default="Not Found"):
-    """Return a printable value without exposing None."""
+    """Return a printable value without exposing None or unsupported unicode characters."""
     if value is None or str(value).strip() == "":
         return default
-    return str(value)
+    s = str(value)
+    s = s.replace("\u2014", " - ").replace("\u2013", " - ")
+    s = s.replace("\u2018", "'").replace("\u2019", "'")
+    s = s.replace("\u201c", '"').replace("\u201d", '"')
+    s = s.replace("\u2022", "*").replace("\u2026", "...")
+    return s
 
 
 def _risk_color(score):

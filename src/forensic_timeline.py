@@ -33,11 +33,19 @@ def build_forensic_timeline(
 
     add('Analysis Started', 'Email analysis pipeline initialized.', 'Analysis')
 
-    if message is not None:
+    subject = "Not Found"
+    if forensic_data and forensic_data.get("subject") and forensic_data.get("subject") != "Not Found":
+        subject = forensic_data.get("subject")
+    elif message is not None:
         subject = message.get('Subject', 'Not Found')
-        add('Email Parsed', f'Email structure parsed successfully. Subject: {subject}', 'Email')
-    else:
-        add('Email Parsed', 'Email content parsed for analysis.', 'Email')
+
+    add('Email Parsed', f'Email structure parsed successfully. Subject: {subject}', 'Email')
+
+    if forensic_data and forensic_data.get("is_simulation"):
+        add('Simulation Drill Detected', 'Identified authorized security awareness / phishing simulation drill patterns.', 'Simulation')
+
+    if forensic_data and forensic_data.get("has_semantic_cues"):
+        add('Semantic Phishing Analysis', 'Scanned message content for psychological urgency triggers and credential harvesting language.', 'NLP / ML')
 
     if forensic_data:
         received = forensic_data.get('received') or []

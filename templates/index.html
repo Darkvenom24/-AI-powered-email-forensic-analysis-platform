@@ -133,6 +133,18 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="active-case-indicator" id="header-subject-wrapper" style="margin-left:14px;display:inline-flex;align-items:center;background:rgba(6,182,212,0.08);border:1px solid var(--border-cyan);border-radius:6px;padding:5px 12px;font-size:12px;">
+                        <span style="color:var(--accent-cyan);font-weight:600;margin-right:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Active Subject:</span>
+                        <span id="header-subject" style="color:var(--text-primary);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;">
+                            {% if result and result.forensics and result.forensics.subject and result.forensics.subject != 'Not Found' %}
+                                {{ result.forensics.subject }}
+                            {% elif result and result.subject %}
+                                {{ result.subject }}
+                            {% else %}
+                                SIMULATED PHISHING TEST — NO ACTION REQUIRED
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="header-right">
@@ -195,9 +207,21 @@
                     <!-- 2. SENDER & RECIPIENT CARDS (IMAGE 3) -->
                     <div class="card col-4">
                         <div class="card-title">
-                            <span>Sender Identity</span>
-                            <span class="card-title-icon" title="Originating sender verification">ⓘ</span>
+                            <span>Subject & Identity</span>
+                            <span class="card-title-icon" title="Case subject and originating sender verification">ⓘ</span>
                         </div>
+                        <div class="meta-card-sub" style="color:var(--accent-cyan);font-weight:600;margin-bottom:2px;">CASE SUBJECT</div>
+                        <div class="meta-card-value" id="card-subject" style="font-size:13px;margin-bottom:12px;word-break:break-word;color:#38bdf8;">
+                            {% if result and result.forensics and result.forensics.subject and result.forensics.subject != 'Not Found' %}
+                                {{ result.forensics.subject }}
+                            {% elif result and result.subject %}
+                                {{ result.subject }}
+                            {% else %}
+                                SIMULATED PHISHING TEST — NO ACTION REQUIRED
+                            {% endif %}
+                        </div>
+
+                        <div class="meta-card-sub" style="color:var(--text-muted);font-weight:600;margin-bottom:2px;">FROM</div>
                         <div class="meta-card-value" id="card-sender">
                             {% if result and result.forensics and result.forensics.from != 'Not Found' %}
                                 {{ result.forensics.from }}
@@ -209,8 +233,8 @@
                         </div>
                         <div class="meta-card-sub" id="card-sender-sub">Direct RFC 5322 Mail Address</div>
                         
-                        <div style="margin-top:16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
-                            <div class="card-title">Recipient</div>
+                        <div style="margin-top:12px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                            <div class="meta-card-sub" style="color:var(--text-muted);font-weight:600;margin-bottom:2px;">TO</div>
                             <div class="meta-card-value" id="card-recipient">
                                 {% if result and result.forensics and result.forensics.to %}
                                     {{ result.forensics.to }}
