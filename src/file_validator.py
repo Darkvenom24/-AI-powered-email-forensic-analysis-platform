@@ -3,7 +3,8 @@ SIH26106: Email Forensic Ingestion & File Security Validator
 ============================================================
 Strict multi-layer validation engine for uploaded files and raw text payloads.
 Enforces that ONLY valid RFC 822 / MIME (.eml) email files are ingested,
-blocking executables (.exe, .dll, .elf, etc.), scripts, archives, and non-email formats.
+blocking executables (.exe, .dll, .elf, etc.), scripts, archives,
+identity documents (Aadhaar cards, PAN cards), and non-email formats (PDFs, images).
 """
 
 import os
@@ -15,6 +16,18 @@ MAX_EMAIL_FILE_SIZE = 15 * 1024 * 1024
 
 # Strictly allowed extension
 ALLOWED_EXTENSIONS = {".eml"}
+
+# Image extensions (common Aadhaar card photos, screenshots, etc.)
+IMAGE_EXTENSIONS = {
+    "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif",
+    "svg", "ico", "heic", "jfif", "avif"
+}
+
+# Document & spreadsheet extensions (common e-Aadhaar PDFs, office documents)
+DOCUMENT_EXTENSIONS = {
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+    "odt", "ods", "odp", "rtf", "xml", "csv", "tsv"
+}
 
 # Dangerous executable / script extensions strictly forbidden anywhere in filename
 DANGEROUS_EXTENSIONS = {
@@ -43,13 +56,18 @@ MAGIC_SIGNATURES = [
     (b"Rar!\x1a\x07", "RAR archive detected. Archives must be extracted; only individual .eml files are permitted."),
     # 7-Zip Archives
     (b"7z\xbc\xaf\x27\x1c", "7-Zip archive detected. Archives must be extracted; only individual .eml files are permitted."),
-    # PDF Documents
-    (b"%PDF-", "PDF document detected. PDF files cannot be analyzed directly as raw .eml emails."),
-    # Standard Media Files
-    (b"\xff\xd8\xff", "JPEG image binary detected."),
-    (b"\x89PNG\r\n\x1a\n", "PNG image binary detected."),
+    # PDF Documents (e.g. e-Aadhaar card PDF)
+    (b"%PDF-", "PDF document detected. Aadhaar card PDFs and document files cannot be analyzed directly as raw .eml emails."),
+    # Standard Media Files (e.g. Aadhaar card photos / scans)
+    (b"\xff\xd8\xff", "JPEG image binary detected. Aadhaar photos and image files cannot be analyzed as emails."),
+    (b"\x89PNG\r\n\x1a\n", "PNG image binary detected. Scanned cards and image files cannot be analyzed as emails."),
     (b"GIF87a", "GIF image binary detected."),
     (b"GIF89a", "GIF image binary detected."),
+    (b"BM", "Windows Bitmap (BMP) image detected."),
+    (b"II*\x00", "TIFF image detected."),
+    (b"MM\x00*", "TIFF image detected."),
+    # Microsoft Office Compound File (OLE)
+    (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", "Microsoft Office binary document (DOC/XLS/PPT) detected."),
 ]
 
 # Regex pattern for RFC 5322 / MIME email headers
@@ -57,6 +75,49 @@ EMAIL_HEADER_PATTERN = re.compile(
     r"(?im)^(?:From|To|Subject|Date|Received|Message-ID|Return-Path|MIME-Version|"
     r"Content-Type|Delivered-To|DKIM-Signature|Authentication-Results|X-[a-zA-Z0-9_-]+)\s*:"
 )
+
+
+def check_identity_document(text: str) -> Optional[Tuple[str, str]]:
+    """
+    Detect if text belongs to an Aadhaar card, PAN card, or Indian identity record
+    rather than an email message.
+    """
+    text_lower = text.lower()
+
+    # 1. Aadhaar Card detection
+    aadhaar_keywords = [
+        "aadhaar", "uidai", "mera aadhaar", "unique identification authority",
+        "enrollment no", "enrolment no", "vid :"
+    ]
+    has_aadhaar_keyword = any(k in text_lower for k in aadhaar_keywords)
+    has_aadhaar_number = bool(re.search(r"\b\d{4}\s\d{4}\s\d{4}\b", text))
+    has_uidai_email = "help@uidai.gov.in" in text_lower
+
+    if has_aadhaar_keyword or has_uidai_email or (has_aadhaar_number and "government of india" in text_lower):
+        return (
+            "Aadhaar Card",
+            "Indian Aadhaar Card / UIDAI identity document detected. Personal identity documents cannot be ingested for email forensic analysis."
+        )
+
+    # 2. PAN Card detection
+    pan_keywords = ["income tax department", "permanent account number", "govt. of india pan"]
+    has_pan_keyword = any(k in text_lower for k in pan_keywords)
+    has_pan_number = bool(re.search(r"\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b", text))
+    if has_pan_keyword or (has_pan_number and ("income tax" in text_lower or "father's name" in text_lower)):
+        return (
+            "PAN Card",
+            "Income Tax PAN Card detected. Identity documents cannot be analyzed as email files."
+        )
+
+    # 3. Passport / Driving License / Voter ID
+    if "republic of india" in text_lower and "passport" in text_lower:
+        return ("Passport", "Indian Passport document detected. Identity records cannot be ingested as email files.")
+    if "driving licence" in text_lower or "driving license" in text_lower:
+        return ("Driving License", "Driving License document detected. Identity records cannot be ingested as email files.")
+    if "election commission of india" in text_lower or "voter identity card" in text_lower:
+        return ("Voter ID", "Voter Identity Card detected. Identity records cannot be ingested as email files.")
+
+    return None
 
 
 def validate_email_upload(
@@ -69,10 +130,11 @@ def validate_email_upload(
     Checks performed:
     1. Empty file check
     2. File size limit enforcement
-    3. Filename & extension analysis (must end in .eml, no dangerous double-extensions)
-    4. Binary magic-byte inspection (blocking .exe MZ headers, ELF, Mach-O, archives, etc.)
+    3. Filename & extension analysis (must end in .eml, blocking PDFs, images, executables, double-exts)
+    4. Binary magic-byte inspection (blocking .exe MZ headers, ELF, Mach-O, archives, PDFs, images)
     5. Null-byte density inspection (ensuring content is text, not binary)
-    6. RFC 822 / MIME email structure verification (detecting valid email headers)
+    6. Identity document detection (blocking Aadhaar cards, PAN cards, etc.)
+    7. RFC 822 / MIME email structure verification (detecting valid email headers and email addresses)
 
     Returns:
         (is_valid: bool, error_message: Optional[str], metadata: dict)
@@ -86,7 +148,6 @@ def validate_email_upload(
         try:
             file_obj_or_bytes.seek(0)
             raw_bytes = file_obj_or_bytes.read()
-            # Reset seek position for subsequent consumption
             file_obj_or_bytes.seek(0)
         except Exception as e:
             return False, f"Failed to read uploaded file: {str(e)}", {"code": "READ_ERROR"}
@@ -120,14 +181,31 @@ def validate_email_upload(
     clean_fname = os.path.basename(fname).strip()
     name_lower = clean_fname.lower()
     _, ext = os.path.splitext(name_lower)
+    bare_ext = ext.lstrip(".")
 
     if ext not in ALLOWED_EXTENSIONS:
-        if ext in [f".{d}" for d in DANGEROUS_EXTENSIONS]:
+        if bare_ext in DANGEROUS_EXTENSIONS:
             return (
                 False,
                 f"Security Violation: '{clean_fname}' is an executable or dangerous file type ({ext}). "
                 f"Only RFC 822 email files (.eml) are permitted for forensic analysis.",
                 {**details, "code": "EXECUTABLE_FILE_BLOCKED", "blocked_ext": ext}
+            )
+        if bare_ext in IMAGE_EXTENSIONS:
+            return (
+                False,
+                f"Image File Rejected: '{clean_fname}' is an image file ({ext}). "
+                f"Aadhaar card photos, screenshots, and graphic files cannot be analyzed directly as email messages. "
+                f"Please upload a standard RFC 822 email file (.eml).",
+                {**details, "code": "IMAGE_FILE_REJECTED", "blocked_ext": ext}
+            )
+        if bare_ext in DOCUMENT_EXTENSIONS:
+            return (
+                False,
+                f"Document Format Rejected: '{clean_fname}' is a document ({ext}). "
+                f"Aadhaar card PDFs, spreadsheets, and office files cannot be ingested. "
+                f"Only RFC 822 email files (.eml) are supported for forensic investigation.",
+                {**details, "code": "DOCUMENT_FILE_REJECTED", "blocked_ext": ext}
             )
         return (
             False,
@@ -136,18 +214,27 @@ def validate_email_upload(
             {**details, "code": "INVALID_EXTENSION", "allowed": [".eml"]}
         )
 
-    # 5. Multi-Extension & Double Extension Defense (e.g., payload.exe.eml)
+    # 5. Multi-Extension & Double Extension Defense (e.g., payload.exe.eml, aadhaar.pdf.eml)
     tokens = [t.lower() for t in clean_fname.split(".")]
     if len(tokens) > 2:
         inner_extensions = set(tokens[1:-1])
-        conflicting = inner_extensions.intersection(DANGEROUS_EXTENSIONS)
-        if conflicting:
-            conf_ext = list(conflicting)[0]
+        conflicting_dangerous = inner_extensions.intersection(DANGEROUS_EXTENSIONS)
+        if conflicting_dangerous:
+            conf_ext = list(conflicting_dangerous)[0]
             return (
                 False,
                 f"Security Violation: Double extension detected with dangerous payload signature (.{conf_ext}). "
                 f"Disguised executable files are strictly prohibited.",
                 {**details, "code": "DISGUISED_EXECUTABLE_BLOCKED", "dangerous_inner_ext": conf_ext}
+            )
+        conflicting_docs = inner_extensions.intersection(DOCUMENT_EXTENSIONS.union(IMAGE_EXTENSIONS))
+        if conflicting_docs:
+            conf_ext = list(conflicting_docs)[0]
+            return (
+                False,
+                f"Security Violation: Double extension detected with document/image signature (.{conf_ext}.eml). "
+                f"Renamed documents and identity files are prohibited.",
+                {**details, "code": "DISGUISED_DOCUMENT_BLOCKED", "inner_ext": conf_ext}
             )
 
     # 6. Binary Magic Byte Signature Inspection
@@ -160,7 +247,15 @@ def validate_email_upload(
                 {**details, "code": "MALICIOUS_MAGIC_BYTES", "signature": signature.hex()}
             )
 
-    # Additional executable search: If MZ is within first 16 bytes (some packed PE headers)
+    # WebP check (RIFF....WEBP)
+    if header_chunk_512.startswith(b"RIFF") and len(header_chunk_512) >= 12 and header_chunk_512[8:12] == b"WEBP":
+        return (
+            False,
+            "Security Rejection: WebP image binary detected. Images cannot be analyzed as email files.",
+            {**details, "code": "IMAGE_MAGIC_BYTES"}
+        )
+
+    # Executable search: If MZ is within first 16 bytes
     if b"MZ" in header_chunk_512[:16]:
         return (
             False,
@@ -169,7 +264,6 @@ def validate_email_upload(
         )
 
     # 7. Null-Byte Density Check
-    # Valid EML files are ASCII / UTF-8 text with headers. Binary files contain dense null bytes (\x00).
     sample_chunk = raw_bytes[:min(4096, file_size)]
     null_count = sample_chunk.count(b"\x00")
     if len(sample_chunk) > 0 and (null_count / len(sample_chunk)) > 0.01:
@@ -179,25 +273,46 @@ def validate_email_upload(
             {**details, "code": "BINARY_FILE_REJECTED", "null_byte_ratio": null_count / len(sample_chunk)}
         )
 
-    # 8. RFC 822 / MIME Email Header Structure Verification
-    # An EML file MUST start with standard email headers or MIME markers.
+    # 8. Decode content for Text & Header verification
     try:
         header_text = sample_chunk.decode("utf-8", errors="replace")
     except Exception:
         header_text = sample_chunk.decode("latin-1", errors="replace")
 
+    # 9. Identity Document Inspection (Aadhaar / PAN check)
+    id_doc = check_identity_document(header_text)
     headers_found = EMAIL_HEADER_PATTERN.findall(header_text)
-    if not headers_found:
-        # Check if entire content is at least plain text with some email cues
-        has_at_symbol = "@" in header_text
-        has_message_body = len(header_text.strip()) > 15
-        if not (has_at_symbol and has_message_body):
+    from_matches = re.findall(r"(?im)^From\s*:\s*(.+)$", header_text)
+    has_valid_email_from = any("@" in f for f in from_matches)
+
+    if id_doc:
+        doc_type, doc_msg = id_doc
+        # If text is an Aadhaar card without legitimate RFC email headers and sender email
+        if not (has_valid_email_from and len(headers_found) >= 2):
             return (
                 False,
-                "Invalid Email Structure: The uploaded file does not contain valid RFC 822 email headers "
-                "(e.g., From, To, Subject, Date, Received) or recognizable email content.",
-                {**details, "code": "INVALID_EMAIL_HEADERS"}
+                f"Identity Document Rejected: {doc_msg}",
+                {**details, "code": "IDENTITY_DOCUMENT_REJECTED", "doc_type": doc_type}
             )
+
+    # 10. RFC 822 / MIME Email Header Structure Verification
+    if not headers_found:
+        return (
+            False,
+            "Invalid Email Structure: The uploaded file does not contain valid RFC 822 email headers "
+            "(e.g., From, To, Subject, Date, Received). Non-email documents and identity cards cannot be analyzed.",
+            {**details, "code": "INVALID_EMAIL_HEADERS"}
+        )
+
+    # Prevent false positives where a letter or postal document has a lonely 'To:' line without any email address
+    distinct_headers = set(h.lower().rstrip(":") for h in headers_found)
+    has_email_addr = bool(re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", header_text))
+    if len(distinct_headers) == 1 and "to" in distinct_headers and not has_email_addr:
+        return (
+            False,
+            "Invalid Email Structure: The file contains a postal recipient ('To:') but lacks RFC 822 email headers (From, Subject, Date) and email addresses.",
+            {**details, "code": "INVALID_EMAIL_HEADERS"}
+        )
 
     details["headers_found_sample"] = headers_found[:5]
     details["is_valid"] = True
@@ -207,7 +322,8 @@ def validate_email_upload(
 def validate_email_text_payload(text_content: Optional[str]) -> Tuple[bool, Optional[str], Dict[str, Any]]:
     """
     Validate raw pasted email text content from textarea or JSON payload.
-    Ensures it is non-empty, contains readable text, and is not binary data.
+    Ensures it is non-empty, contains readable text, has email structure,
+    and is not an identity document (Aadhaar, PAN) or binary payload.
     """
     if not text_content or not isinstance(text_content, str):
         return False, "No email text provided.", {"code": "EMPTY_TEXT"}
@@ -223,4 +339,29 @@ def validate_email_text_payload(text_content: Optional[str]) -> Tuple[bool, Opti
     if "\x00" in clean_text:
         return False, "Binary data detected in text input. Executables and binary files cannot be pasted.", {"code": "BINARY_TEXT_DETECTED"}
 
-    return True, None, {"length": len(clean_text), "is_valid": True}
+    # Identity document detection (Aadhaar / PAN card text)
+    id_doc = check_identity_document(clean_text)
+    from_matches = re.findall(r"(?im)^From\s*:\s*(.+)$", clean_text)
+    has_valid_email_from = any("@" in f for f in from_matches)
+
+    if id_doc and not has_valid_email_from:
+        doc_type, doc_msg = id_doc
+        return (
+            False,
+            f"Identity Document Rejected: {doc_msg}",
+            {"code": "IDENTITY_DOCUMENT_REJECTED", "doc_type": doc_type}
+        )
+
+    # Check email headers or email addresses
+    headers_found = EMAIL_HEADER_PATTERN.findall(clean_text[:2048])
+    has_email_addr = bool(re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", clean_text))
+
+    if not headers_found and not has_email_addr:
+        return (
+            False,
+            "Invalid Email Content: The pasted text does not resemble an email message. "
+            "It lacks RFC email headers (From, To, Subject) and standard email addresses.",
+            {"code": "INVALID_EMAIL_CONTENT"}
+        )
+
+    return True, None, {"length": len(clean_text), "is_valid": True, "headers_count": len(headers_found)}
