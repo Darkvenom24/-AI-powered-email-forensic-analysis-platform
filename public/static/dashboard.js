@@ -113,6 +113,8 @@ function initLeafletMap() {
             addPulsingMarker(52.3676, 4.9041, "Amsterdam, NL (Tor Relay)");
             addPulsingMarker(37.7749, -122.4194, "San Francisco, US (Recipient)");
         }
+
+        setupMapFullscreen();
     } catch (e) {
         console.warn("Leaflet map initialization warning:", e);
     }
@@ -153,6 +155,110 @@ function plotIpLocations(ipResults) {
         // Fallback default coordinates
         leafletMap.setView([45, 10], 2);
     }
+}
+
+// ============================================================
+// 3B. MAP FULLSCREEN CONTROLLER
+// ============================================================
+
+function setupMapFullscreen() {
+    const mapWrapper = document.getElementById('map-wrapper');
+    const openBtn = document.getElementById('btn-map-fullscreen');
+    const headerExpandBtn = document.getElementById('btn-map-header-expand');
+    const closeBtn = document.getElementById('btn-map-close-fullscreen');
+    const hudIp = document.getElementById('hud-target-ip');
+    const hudLoc = document.getElementById('hud-target-loc');
+
+    if (!mapWrapper) return;
+
+    function enterFullscreen() {
+        const geoIp = document.getElementById('geo-ip');
+        const geoCountry = document.getElementById('geo-country');
+        if (hudIp && geoIp) hudIp.textContent = `Target IP: ${geoIp.textContent.trim()}`;
+        if (hudLoc && geoCountry) hudLoc.textContent = geoCountry.textContent.trim();
+
+        mapWrapper.classList.add('is-fullscreen');
+        document.body.style.overflow = 'hidden';
+
+        if (mapWrapper.requestFullscreen) {
+            mapWrapper.requestFullscreen().catch(() => {});
+        } else if (mapWrapper.webkitRequestFullscreen) {
+            mapWrapper.webkitRequestFullscreen();
+        }
+
+        setTimeout(() => {
+            if (leafletMap) {
+                leafletMap.invalidateSize();
+                if (mapMarkers && mapMarkers.length > 0) {
+                    const coords = mapMarkers.map(m => m.getLatLng());
+                    leafletMap.fitBounds(coords, { maxZoom: 6, padding: [60, 60] });
+                }
+            }
+        }, 80);
+    }
+
+    function exitFullscreen() {
+        mapWrapper.classList.remove('is-fullscreen');
+        document.body.style.overflow = '';
+
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+
+        setTimeout(() => {
+            if (leafletMap) {
+                leafletMap.invalidateSize();
+                if (mapMarkers && mapMarkers.length > 0) {
+                    const coords = mapMarkers.map(m => m.getLatLng());
+                    leafletMap.fitBounds(coords, { maxZoom: 5, padding: [20, 20] });
+                }
+            }
+        }, 80);
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            enterFullscreen();
+        });
+    }
+
+    if (headerExpandBtn) {
+        headerExpandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            enterFullscreen();
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exitFullscreen();
+        });
+    }
+
+    // Escape key listener
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mapWrapper.classList.contains('is-fullscreen')) {
+            exitFullscreen();
+        }
+    });
+
+    // Native fullscreen change event listener
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && mapWrapper.classList.contains('is-fullscreen')) {
+            exitFullscreen();
+        }
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+        if (!document.webkitFullscreenElement && mapWrapper.classList.contains('is-fullscreen')) {
+            exitFullscreen();
+        }
+    });
 }
 
 // ============================================================
