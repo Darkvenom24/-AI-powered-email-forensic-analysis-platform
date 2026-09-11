@@ -113,13 +113,20 @@ function initLeafletMap() {
     try {
         leafletMap = L.map('map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            maxZoom: 16,
+            minZoom: 2
         }).setView([20, 0], 2);
 
-        // Dark Matter tiles
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            subdomains: 'abcd',
+        // Dark Forensic Basemap tiles (Esri World Dark Gray - no API key required, zero watermarks)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16,
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+        }).addTo(leafletMap);
+
+        // Geographic reference labels layer (crisp country boundaries & city labels)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16
         }).addTo(leafletMap);
 
         if (currentResult && currentResult.ip_results) {
