@@ -231,10 +231,11 @@ body {
 }
 
 .top-header {
-    height: 64px;
+    min-height: var(--header-height);
+    height: auto;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
-    padding: 0 24px;
+    padding: 12px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -242,16 +243,130 @@ body {
     top: 0;
     z-index: 90;
     backdrop-filter: blur(10px);
-    gap: 16px;
+    -webkit-backdrop-filter: blur(10px);
+    gap: 14px;
     box-sizing: border-box;
+    flex-wrap: wrap;
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     min-width: 0;
     flex: 1;
+    flex-wrap: wrap;
+}
+
+.btn-sidebar-toggle {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--accent-cyan);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.btn-sidebar-toggle:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+}
+
+.mobile-brand {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mobile-brand-logo {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #06B6D4, #3B82F6);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-brand-logo svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+}
+
+.mobile-brand-text {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.mobile-brand-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.mobile-brand-sub {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.btn-text-mobile {
+    display: none;
+}
+
+.btn-text-full {
+    display: inline;
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 105;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.sidebar-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar-close-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: auto;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+    color: var(--text-primary);
 }
 
 .header-title {
@@ -411,46 +526,7 @@ body {
     box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
 }
 
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-left: 12px;
-    border-left: 1px solid var(--border-color);
-    flex-shrink: 0;
-    height: 38px;
-}
 
-.user-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3B82F6, #6366F1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 13px;
-    color: white;
-    flex-shrink: 0;
-}
-
-.user-meta {
-    display: flex;
-    flex-direction: column;
-    white-space: nowrap;
-}
-
-.user-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.user-role {
-    font-size: 11px;
-    color: var(--text-muted);
-}
 
 /* ============================================================
    DASHBOARD GRID & CARDS (IMAGE 3 MATCH)
@@ -1333,8 +1409,14 @@ body {
 }
 
 /* ============================================================
-   RESPONSIVENESS
+   RESPONSIVENESS (MOBILE-FIRST POLISHED BREAKPOINTS)
    ============================================================ */
+
+@media (max-width: 1280px) {
+    .active-case-indicator {
+        display: none !important;
+    }
+}
 
 @media (max-width: 1200px) {
     .col-3 { grid-column: span 6; }
@@ -1346,10 +1428,129 @@ body {
     #map { height: 200px; }
 }
 
+@media (max-width: 992px) {
+    .btn-sidebar-toggle {
+        display: inline-flex;
+    }
+    .mobile-brand {
+        display: inline-flex;
+    }
+    .header-title {
+        display: none;
+    }
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 110;
+        box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8);
+        width: 270px;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .sidebar-close-btn {
+        display: block;
+    }
+    .main-wrapper {
+        margin-left: 0;
+    }
+    .dashboard-grid {
+        gap: 14px;
+    }
+    .col-3, .col-4 {
+        grid-column: span 6;
+    }
+    .col-5, .col-6, .col-7, .col-8, .col-12 {
+        grid-column: span 12;
+    }
+}
+
 @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .main-wrapper { margin-left: 0; }
-    .col-3, .col-4, .col-6 { grid-column: span 12; }
-    .top-header { padding: 0 16px; }
-    .content-area { padding: 16px; }
+    .top-header {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+    .header-left {
+        gap: 8px;
+    }
+    .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 {
+        grid-column: span 12;
+    }
+    .content-area {
+        padding: 14px;
+    }
+    .geo-container {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    #map {
+        height: 220px;
+        margin-top: 10px;
+    }
+    .preset-select {
+        max-width: 170px;
+        font-size: 12px;
+    }
+    .preset-selector-wrapper {
+        height: 36px;
+        padding: 0 10px;
+    }
+    .btn {
+        height: 36px;
+        padding: 0 10px;
+        font-size: 12px;
+    }
+    .btn-text-full {
+        display: none;
+    }
+    .btn-text-mobile {
+        display: inline;
+    }
+    .history-table th, .history-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-header {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+    .preset-selector-wrapper label {
+        display: none;
+    }
+    .preset-select {
+        max-width: 130px;
+        font-size: 11px;
+    }
+    .mobile-brand-title {
+        font-size: 14px;
+    }
+    .mobile-brand-sub {
+        display: none;
+    }
+    .btn {
+        padding: 0 8px;
+        font-size: 11px;
+        gap: 4px;
+    }
+    .card {
+        padding: 14px;
+    }
+    .modal-box {
+        margin: 6px;
+        max-width: calc(100vw - 16px);
+        border-radius: 12px;
+    }
+    .modal-header, .modal-body, .modal-footer {
+        padding: 14px 16px;
+    }
+    .modal-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .modal-footer .btn {
+        flex: 1 1 auto;
+    }
 }

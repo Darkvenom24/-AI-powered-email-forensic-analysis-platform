@@ -420,6 +420,52 @@ function runPreset(presetId) {
 // ============================================================
 
 function setupEventListeners() {
+    // Mobile sidebar drawer handlers
+    const sidebar = document.getElementById('app-sidebar');
+    const sidebarToggleBtn = document.getElementById('btn-sidebar-toggle');
+    const sidebarCloseBtn = document.getElementById('btn-sidebar-close');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+    function openMobileSidebar() {
+        if (sidebar) sidebar.classList.add('open');
+        if (sidebarBackdrop) sidebarBackdrop.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileSidebar() {
+        if (sidebar) sidebar.classList.remove('open');
+        if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sidebar && sidebar.classList.contains('open')) {
+                closeMobileSidebar();
+            } else {
+                openMobileSidebar();
+            }
+        });
+    }
+
+    if (sidebarCloseBtn) {
+        sidebarCloseBtn.addEventListener('click', closeMobileSidebar);
+    }
+
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+    }
+
+    // Auto-close sidebar on mobile when clicking navigation links or settings
+    document.querySelectorAll('.nav-menu .nav-item, .sidebar-footer .nav-item, #supabase-status-pill').forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 992) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
     // Preset dropdown
     const presetSelect = document.getElementById('preset-select');
     if (presetSelect) {

@@ -58,54 +58,332 @@
             max-height: 36px !important;
         }
         .top-header {
-            height: 64px !important;
-            padding: 0 24px !important;
+            min-height: 64px !important;
+            height: auto !important;
+            padding: 12px 24px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            gap: 16px !important;
+            gap: 14px !important;
             box-sizing: border-box !important;
+            background: var(--bg-secondary) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 90 !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
         }
         .header-left {
             display: flex !important;
             align-items: center !important;
-            gap: 14px !important;
+            gap: 12px !important;
             min-width: 0 !important;
             flex: 1 !important;
+            flex-wrap: wrap !important;
+        }
+        .header-title {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: var(--text-primary) !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+        }
+        .preset-selector-wrapper {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            background: var(--bg-card) !important;
+            padding: 0 12px !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            border: 1px solid var(--border-color) !important;
+            flex-shrink: 0 !important;
+        }
+        .preset-selector-wrapper label {
+            font-size: 11px !important;
+            color: var(--text-muted) !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            white-space: nowrap !important;
         }
         .preset-select {
             max-width: 220px !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
+            background: transparent !important;
+            border: none !important;
+            color: var(--accent-cyan) !important;
+            font-weight: 600 !important;
+            font-size: 13px !important;
+            cursor: pointer !important;
+            outline: none !important;
+        }
+        .active-case-indicator {
+            display: inline-flex !important;
+            align-items: center !important;
+            background: rgba(6, 182, 212, 0.08) !important;
+            border: 1px solid var(--border-cyan) !important;
+            border-radius: 8px !important;
+            padding: 0 12px !important;
+            height: 38px !important;
+            font-size: 12px !important;
+            min-width: 0 !important;
+            max-width: 280px !important;
+            box-sizing: border-box !important;
+        }
+        .active-case-label {
+            color: var(--accent-cyan) !important;
+            font-weight: 600 !important;
+            margin-right: 8px !important;
+            font-size: 11px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        #header-subject {
+            color: var(--text-primary) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            font-weight: 500 !important;
         }
         .header-right {
             display: flex !important;
             align-items: center !important;
-            gap: 12px !important;
+            gap: 10px !important;
             flex-shrink: 0 !important;
         }
         .btn {
             height: 38px !important;
-            padding: 0 16px !important;
+            padding: 0 14px !important;
             white-space: nowrap !important;
             flex-shrink: 0 !important;
             line-height: 1 !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
+            gap: 7px !important;
             box-sizing: border-box !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            transition: all 0.2s ease !important;
         }
-        .btn span {
-            white-space: nowrap !important;
+        .btn-text-mobile {
+            display: none !important;
         }
-        .user-profile {
+        .btn-text-full {
+            display: inline !important;
+        }
+        .btn-sidebar-toggle {
+            display: none !important;
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--accent-cyan) !important;
+            width: 38px !important;
             height: 38px !important;
+            border-radius: 8px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
             flex-shrink: 0 !important;
+            padding: 0 !important;
+            transition: all 0.2s ease !important;
+        }
+        .btn-sidebar-toggle:hover {
+            border-color: var(--accent-cyan) !important;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.25) !important;
+        }
+        .mobile-brand {
+            display: none !important;
+            align-items: center !important;
+            gap: 8px !important;
+            flex-shrink: 0 !important;
+        }
+        .mobile-brand-logo {
+            width: 30px !important;
+            height: 30px !important;
+            background: linear-gradient(135deg, #06B6D4, #3B82F6) !important;
+            border-radius: 6px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .mobile-brand-logo svg {
+            width: 18px !important;
+            height: 18px !important;
+            fill: white !important;
+        }
+        .mobile-brand-text {
+            display: flex !important;
+            align-items: baseline !important;
+            gap: 4px !important;
+        }
+        .mobile-brand-title {
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            color: var(--text-primary) !important;
+            letter-spacing: 0.5px !important;
+        }
+        .mobile-brand-sub {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            color: var(--accent-cyan) !important;
+            letter-spacing: 0.8px !important;
+            text-transform: uppercase !important;
+        }
+        .sidebar-backdrop {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: rgba(0, 0, 0, 0.75) !important;
+            backdrop-filter: blur(4px) !important;
+            -webkit-backdrop-filter: blur(4px) !important;
+            z-index: 105 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transition: opacity 0.25s ease, visibility 0.25s ease !important;
+        }
+        .sidebar-backdrop.active {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .sidebar-close-btn {
+            display: none !important;
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-muted) !important;
+            font-size: 26px !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            padding: 4px 8px !important;
+            margin-left: auto !important;
+            border-radius: 4px !important;
+        }
+        .sidebar-close-btn:hover {
+            color: var(--text-primary) !important;
         }
         @media (max-width: 1280px) {
             .active-case-indicator {
                 display: none !important;
+            }
+        }
+        @media (max-width: 992px) {
+            .btn-sidebar-toggle {
+                display: inline-flex !important;
+            }
+            .mobile-brand {
+                display: inline-flex !important;
+            }
+            .header-title {
+                display: none !important;
+            }
+            .sidebar {
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 110 !important;
+                box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8) !important;
+                width: 270px !important;
+            }
+            .sidebar.open {
+                transform: translateX(0) !important;
+            }
+            .sidebar-close-btn {
+                display: block !important;
+            }
+            .main-wrapper {
+                margin-left: 0 !important;
+            }
+            .dashboard-grid {
+                gap: 14px !important;
+            }
+            .col-3, .col-4 {
+                grid-column: span 6 !important;
+            }
+            .col-5, .col-6, .col-7, .col-8, .col-12 {
+                grid-column: span 12 !important;
+            }
+        }
+        @media (max-width: 768px) {
+            .top-header {
+                padding: 10px 14px !important;
+                gap: 10px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+            }
+            .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 {
+                grid-column: span 12 !important;
+            }
+            .content-area {
+                padding: 14px !important;
+            }
+            .geo-container {
+                grid-template-columns: 1fr !important;
+                height: auto !important;
+            }
+            #map {
+                height: 220px !important;
+                margin-top: 10px !important;
+            }
+            .preset-select {
+                max-width: 170px !important;
+                font-size: 12px !important;
+            }
+            .preset-selector-wrapper {
+                height: 36px !important;
+                padding: 0 10px !important;
+            }
+            .btn {
+                height: 36px !important;
+                padding: 0 10px !important;
+                font-size: 12px !important;
+            }
+            .btn-text-full {
+                display: none !important;
+            }
+            .btn-text-mobile {
+                display: inline !important;
+            }
+        }
+        @media (max-width: 480px) {
+            .top-header {
+                padding: 8px 10px !important;
+                gap: 8px !important;
+            }
+            .preset-selector-wrapper label {
+                display: none !important;
+            }
+            .preset-select {
+                max-width: 130px !important;
+                font-size: 11px !important;
+            }
+            .mobile-brand-title {
+                font-size: 14px !important;
+            }
+            .mobile-brand-sub {
+                display: none !important;
+            }
+            .btn {
+                padding: 0 8px !important;
+                font-size: 11px !important;
+                gap: 4px !important;
+            }
+            .modal-box {
+                margin: 6px !important;
+                max-width: calc(100vw - 16px) !important;
+                border-radius: 12px !important;
+            }
+            .modal-header, .modal-body, .modal-footer {
+                padding: 14px 16px !important;
             }
         }
         .geo-container {
@@ -158,7 +436,7 @@
         <!-- ============================================================
              LEFT SIDEBAR NAVIGATION
              ============================================================ -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar">
             <div class="brand-section">
                 <div class="brand-logo">
                     <svg width="32" height="32" viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v7.62z"/></svg>
@@ -167,6 +445,7 @@
                     <h1>SIH26106</h1>
                     <span>Forensic AI</span>
                 </div>
+                <button class="sidebar-close-btn" id="btn-sidebar-close" aria-label="Close Menu">&times;</button>
             </div>
 
             <nav class="nav-menu">
@@ -203,6 +482,9 @@
             </div>
         </aside>
 
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
         <!-- ============================================================
              MAIN CONTENT AREA
              ============================================================ -->
@@ -210,18 +492,34 @@
             <!-- TOP BAR -->
             <header class="top-header">
                 <div class="header-left">
+                    <!-- Mobile Hamburger Menu Button -->
+                    <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" type="button" aria-label="Toggle Navigation">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+
+                    <!-- Mobile Brand Identity -->
+                    <div class="mobile-brand">
+                        <div class="mobile-brand-logo">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v7.62z"/></svg>
+                        </div>
+                        <div class="mobile-brand-text">
+                            <span class="mobile-brand-title">SIH26106</span>
+                            <span class="mobile-brand-sub">AI</span>
+                        </div>
+                    </div>
+
                     <h2 class="header-title">Dashboard</h2>
                     <div class="preset-selector-wrapper">
                         <label>Demo Preset:</label>
-                        <select id="preset-select" class="preset-select">
+                        <select id="preset-select" class="preset-select" aria-label="Select Demo Preset Case">
                             <option value="">-- Quick Load Case --</option>
                             {% for p in presets %}
                             <option value="{{ p.id }}">{{ p.title }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="active-case-indicator" id="header-subject-wrapper">
-                        <span class="active-case-label">Active Subject:</span>
+                    <div class="active-case-indicator" id="header-subject-wrapper" title="Current Active Case Subject">
+                        <span class="active-case-label">Active:</span>
                         <span id="header-subject">
                             {% if result and result.forensics and result.forensics.subject and result.forensics.subject != 'Not Found' %}
                                 {{ result.forensics.subject }}
@@ -235,21 +533,16 @@
                 </div>
 
                 <div class="header-right">
-                    <button class="btn btn-primary" onclick="document.getElementById('modal-analyze').classList.add('active');">
+                    <button class="btn btn-primary" onclick="document.getElementById('modal-analyze').classList.add('active');" id="header-btn-analyze" title="Upload and analyze email file or paste raw RFC822 text">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <span>Upload / Analyze</span>
+                        <span class="btn-text-full">Upload / Analyze</span>
+                        <span class="btn-text-mobile">Analyze</span>
                     </button>
-                    <button class="btn btn-report btn-export-report">
+                    <button class="btn btn-report btn-export-report" id="header-btn-export" title="Export comprehensive forensic audit report as PDF">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        <span>Export Report</span>
+                        <span class="btn-text-full">Export Report</span>
+                        <span class="btn-text-mobile">Export</span>
                     </button>
-                    <div class="user-profile">
-                        <div class="user-avatar">JD</div>
-                        <div class="user-meta">
-                            <span class="user-name">John Doe</span>
-                            <span class="user-role">SecOps Lead</span>
-                        </div>
-                    </div>
                 </div>
             </header>
 
