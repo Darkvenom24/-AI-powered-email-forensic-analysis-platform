@@ -184,93 +184,145 @@ function initRelationshipGraph() {
 
 function renderGraph(graphData) {
     const svg = document.getElementById('graph-svg');
-    if (!svg) return;
+    if (!svg || !graphData) return;
     svg.innerHTML = '';
 
-    const width = svg.clientWidth || 650;
-    const height = 240;
+    const isMobile = window.innerWidth <= 640;
+    const VIRTUAL_WIDTH = isMobile ? 360 : 760;
+    const VIRTUAL_HEIGHT = isMobile ? 280 : 250;
 
-    // Node layout positions
-    const positions = {
-        sender: { x: width * 0.12, y: height * 0.5 },
-        domain: { x: width * 0.35, y: height * 0.35 },
-        attachment: { x: width * 0.35, y: height * 0.75 },
-        ip: { x: width * 0.60, y: height * 0.35 },
-        url: { x: width * 0.85, y: height * 0.5 }
+    svg.setAttribute("viewBox", `0 0 ${VIRTUAL_WIDTH} ${VIRTUAL_HEIGHT}`);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    // Dual-tier layout matrix:
+    // Desktop: Horizontal forensic chain with wide spacing
+    // Mobile: 3-tier matrix with zero overlap and high legibility
+    const positions = isMobile ? {
+        sender:     { x: 90,  y: 45 },
+        domain:     { x: 270, y: 45 },
+        attachment: { x: 90,  y: 140 },
+        ip:         { x: 270, y: 140 },
+        url:        { x: 180, y: 235 }
+    } : {
+        sender:     { x: 95,  y: 125 },
+        domain:     { x: 260, y: 65 },
+        attachment: { x: 260, y: 185 },
+        ip:         { x: 480, y: 65 },
+        url:        { x: 660, y: 125 }
     };
 
-    // Defs for arrows and gradients
+    // Defs for arrows
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     defs.innerHTML = `
-        <marker id="arrow" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#06B6D4"/>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#06B6D4"/>
+        </marker>
+        <marker id="arrow-danger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#EF4444"/>
         </marker>
     `;
     svg.appendChild(defs);
 
-    // Draw Edges
-    graphData.edges.forEach(edge => {
-        const fromPos = positions[edge.from] || { x: width * 0.2, y: height * 0.5 };
-        const toPos = positions[edge.to] || { x: width * 0.8, y: height * 0.5 };
+    function getPillBoundary(ux, uy) {
+        const absUx = Math.abs(ux);
+        const absUy = Math.abs(uy);
+        const tx = absUx > 0.0001 ? 56 / absUx : 9999;
+        const ty = absUy > 0.0001 ? 16 / absUy : 9999;
+        return Math.min(tx, ty);
+    }
 
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        path.setAttribute("x1", fromPos.x);
-        path.setAttribute("y1", fromPos.y);
-        path.setAttribute("x2", toPos.x);
-        path.setAttribute("y2", toPos.y);
-        path.setAttribute("class", "graph-link");
-        path.setAttribute("marker-end", "url(#arrow)");
-        svg.appendChild(path);
-    });
+    // Draw Edges with boundary clipping so dashed lines never cut through node text
+    if (graphData.edges) {
+        graphData.edges.forEach(edge => {
+            const fromPos = positions[edge.from] || { x: 90, y: 125 };
+            const toPos = positions[edge.to] || { x: 270, y: 125 };
+            const isDangerEdge = edge.to === 'attachment' || edge.to === 'url';
+
+            const dx = toPos.x - fromPos.x;
+            const dy = toPos.y - fromPos.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 10) {
+                const ux = dx / dist;
+                const uy = dy / dist;
+                const srcOffset = getPillBoundary(ux, uy);
+                const tgtOffset = getPillBoundary(-ux, -uy) + 4;
+
+                const x1 = fromPos.x + ux * srcOffset;
+                const y1 = fromPos.y + uy * srcOffset;
+                const x2 = toPos.x - ux * tgtOffset;
+                const y2 = toPos.y - uy * tgtOffset;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                path.setAttribute("x1", x1);
+                path.setAttribute("y1", y1);
+                path.setAttribute("x2", x2);
+                path.setAttribute("y2", y2);
+                path.setAttribute("class", isDangerEdge ? "graph-link graph-link-danger" : "graph-link");
+                path.setAttribute("marker-end", isDangerEdge ? "url(#arrow-danger)" : "url(#arrow)");
+                svg.appendChild(path);
+            }
+        });
+    }
 
     // Draw Nodes
-    graphData.nodes.forEach(node => {
-        const pos = positions[node.id] || { x: width * 0.5, y: height * 0.5 };
+    if (graphData.nodes) {
+        graphData.nodes.forEach(node => {
+            const pos = positions[node.id] || { x: 180, y: 125 };
 
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute("class", "graph-node");
-        g.setAttribute("transform", `translate(${pos.x}, ${pos.y})`);
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("class", "graph-node");
+            g.setAttribute("transform", `translate(${pos.x}, ${pos.y})`);
 
-        let strokeColor = "#06B6D4";
-        let fillColor = "#131B2E";
-        if (node.type === "attachment" || node.type === "url") {
-            strokeColor = "#EF4444";
-        } else if (node.type === "ip") {
-            strokeColor = "#F59E0B";
-        }
+            let strokeColor = "#06B6D4";
+            let fillColor = "#101828";
+            if (node.type === "attachment" || node.type === "url") {
+                strokeColor = "#EF4444";
+                fillColor = "rgba(239, 68, 68, 0.15)";
+            } else if (node.type === "ip") {
+                strokeColor = "#F59E0B";
+                fillColor = "rgba(245, 158, 11, 0.15)";
+            } else if (node.type === "domain") {
+                strokeColor = "#06B6D4";
+                fillColor = "rgba(6, 182, 212, 0.15)";
+            } else {
+                strokeColor = "#3B82F6";
+                fillColor = "rgba(59, 130, 246, 0.15)";
+            }
 
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", "-55");
-        rect.setAttribute("y", "-16");
-        rect.setAttribute("width", "110");
-        rect.setAttribute("height", "32");
-        rect.setAttribute("rx", "16");
-        rect.setAttribute("fill", fillColor);
-        rect.setAttribute("stroke", strokeColor);
-        rect.setAttribute("stroke-width", "2");
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", "-56");
+            rect.setAttribute("y", "-16");
+            rect.setAttribute("width", "112");
+            rect.setAttribute("height", "32");
+            rect.setAttribute("rx", "16");
+            rect.setAttribute("fill", fillColor);
+            rect.setAttribute("stroke", strokeColor);
+            rect.setAttribute("stroke-width", "2");
 
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("text-anchor", "middle");
-        text.setAttribute("dy", "5");
-        text.setAttribute("fill", "#F8FAFC");
-        text.setAttribute("font-size", "11");
-        text.setAttribute("font-family", "JetBrains Mono, monospace");
-        text.setAttribute("font-weight", "600");
-        
-        let label = node.label || node.id;
-        if (label.length > 14) label = label.substring(0, 12) + "..";
-        text.textContent = label;
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("dy", "4.5");
+            text.setAttribute("fill", "#F8FAFC");
+            text.setAttribute("font-size", isMobile ? "10.5" : "11");
+            text.setAttribute("font-family", "JetBrains Mono, monospace");
+            text.setAttribute("font-weight", "600");
+            
+            let label = node.label || node.id;
+            if (label.length > 14) label = label.substring(0, 12) + "..";
+            text.textContent = label;
 
-        g.appendChild(rect);
-        g.appendChild(text);
+            g.appendChild(rect);
+            g.appendChild(text);
 
-        // Tooltip title
-        const titleEl = document.createElementNS("http://www.w3.org/2000/svg", "title");
-        titleEl.textContent = `${node.type.toUpperCase()}: ${node.full || node.label}`;
-        g.appendChild(titleEl);
+            // Tooltip title
+            const titleEl = document.createElementNS("http://www.w3.org/2000/svg", "title");
+            titleEl.textContent = `${node.type ? node.type.toUpperCase() : 'NODE'}: ${node.full || node.label || node.id}`;
+            g.appendChild(titleEl);
 
-        svg.appendChild(g);
-    });
+            svg.appendChild(g);
+        });
+    }
 }
 
 // ============================================================
@@ -473,6 +525,15 @@ function setupEventListeners() {
             runPreset(e.target.value);
         });
     }
+
+    // Debounced window resize listener for responsive Relationship Graph
+    let graphResizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(graphResizeTimer);
+        graphResizeTimer = setTimeout(() => {
+            initRelationshipGraph();
+        }, 150);
+    });
 
     // Modal triggers
     const openAnalyzeBtn = document.getElementById('btn-open-analyze');

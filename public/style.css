@@ -249,13 +249,27 @@ body {
     flex-wrap: wrap;
 }
 
+.header-main-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
 .header-left {
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
     flex: 1;
-    flex-wrap: wrap;
+}
+
+.header-preset-bar {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .btn-sidebar-toggle {
@@ -963,22 +977,29 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .graph-canvas-container {
-    height: 250px;
+    height: 260px;
     width: 100%;
     position: relative;
     background: radial-gradient(circle, rgba(13, 19, 34, 0.8) 0%, rgba(8, 12, 22, 1) 100%);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .graph-svg {
     width: 100%;
     height: 100%;
+    max-height: 260px;
+    display: block;
 }
 
 .graph-node {
@@ -991,9 +1012,14 @@ body {
 }
 
 .graph-link {
-    stroke: rgba(6, 182, 212, 0.4);
+    stroke: rgba(6, 182, 212, 0.45);
     stroke-width: 2;
-    stroke-dasharray: 4;
+    stroke-dasharray: 5, 5;
+    animation: dashAnimation 25s linear infinite;
+}
+
+.graph-link-danger {
+    stroke: rgba(239, 68, 68, 0.65) !important;
     animation: dashAnimation 20s linear infinite;
 }
 
@@ -1467,11 +1493,42 @@ body {
 
 @media (max-width: 768px) {
     .top-header {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
         padding: 10px 14px;
+        gap: 8px;
+    }
+    .header-main-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
     }
     .header-left {
         gap: 8px;
+        flex: 1;
+    }
+    .header-right {
+        gap: 6px;
+    }
+    .header-preset-bar {
+        width: 100%;
+    }
+    .header-preset-bar .preset-selector-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        height: 38px;
+        padding: 0 12px;
+        box-sizing: border-box;
+    }
+    .header-preset-bar .preset-select {
+        flex: 1;
+        width: 100%;
+        max-width: none;
+        font-size: 12px;
     }
     .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 {
         grid-column: span 12;
@@ -1486,14 +1543,6 @@ body {
     #map {
         height: 220px;
         margin-top: 10px;
-    }
-    .preset-select {
-        max-width: 170px;
-        font-size: 12px;
-    }
-    .preset-selector-wrapper {
-        height: 36px;
-        padding: 0 10px;
     }
     .btn {
         height: 36px;
@@ -1510,6 +1559,9 @@ body {
         padding: 8px 10px;
         font-size: 12px;
     }
+    .graph-canvas-container {
+        height: 290px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1517,12 +1569,27 @@ body {
         padding: 8px 10px;
         gap: 8px;
     }
-    .preset-selector-wrapper label {
-        display: none;
+    .header-preset-bar {
+        width: 100%;
     }
-    .preset-select {
-        max-width: 130px;
-        font-size: 11px;
+    .header-preset-bar .preset-selector-wrapper {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .header-preset-bar .preset-selector-wrapper label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        white-space: nowrap;
+        display: inline-block;
+    }
+    .header-preset-bar .preset-select {
+        flex: 1;
+        width: 100%;
+        max-width: 100%;
+        font-size: 12px;
     }
     .mobile-brand-title {
         font-size: 14px;

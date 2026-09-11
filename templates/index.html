@@ -73,6 +73,15 @@
             z-index: 90 !important;
             backdrop-filter: blur(10px) !important;
             -webkit-backdrop-filter: blur(10px) !important;
+            flex-wrap: wrap !important;
+        }
+        .header-main-row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+            flex: 1 !important;
+            min-width: 0 !important;
         }
         .header-left {
             display: flex !important;
@@ -80,7 +89,11 @@
             gap: 12px !important;
             min-width: 0 !important;
             flex: 1 !important;
-            flex-wrap: wrap !important;
+        }
+        .header-preset-bar {
+            display: flex !important;
+            align-items: center !important;
+            flex-shrink: 0 !important;
         }
         .header-title {
             font-size: 18px !important;
@@ -314,11 +327,42 @@
         }
         @media (max-width: 768px) {
             .top-header {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
                 padding: 10px 14px !important;
+                gap: 8px !important;
+            }
+            .header-main-row {
+                width: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
                 gap: 10px !important;
             }
             .header-left {
                 gap: 8px !important;
+                flex: 1 !important;
+            }
+            .header-right {
+                gap: 6px !important;
+            }
+            .header-preset-bar {
+                width: 100% !important;
+            }
+            .header-preset-bar .preset-selector-wrapper {
+                width: 100% !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                height: 38px !important;
+                padding: 0 12px !important;
+                box-sizing: border-box !important;
+            }
+            .header-preset-bar .preset-select {
+                flex: 1 !important;
+                width: 100% !important;
+                max-width: none !important;
+                font-size: 12px !important;
             }
             .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 {
                 grid-column: span 12 !important;
@@ -334,14 +378,6 @@
                 height: 220px !important;
                 margin-top: 10px !important;
             }
-            .preset-select {
-                max-width: 170px !important;
-                font-size: 12px !important;
-            }
-            .preset-selector-wrapper {
-                height: 36px !important;
-                padding: 0 10px !important;
-            }
             .btn {
                 height: 36px !important;
                 padding: 0 10px !important;
@@ -353,18 +389,36 @@
             .btn-text-mobile {
                 display: inline !important;
             }
+            .graph-canvas-container {
+                height: 290px !important;
+            }
         }
         @media (max-width: 480px) {
             .top-header {
                 padding: 8px 10px !important;
                 gap: 8px !important;
             }
-            .preset-selector-wrapper label {
-                display: none !important;
+            .header-preset-bar {
+                width: 100% !important;
             }
-            .preset-select {
-                max-width: 130px !important;
-                font-size: 11px !important;
+            .header-preset-bar .preset-selector-wrapper {
+                width: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            .header-preset-bar .preset-selector-wrapper label {
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                color: var(--accent-cyan) !important;
+                white-space: nowrap !important;
+                display: inline-block !important;
+            }
+            .header-preset-bar .preset-select {
+                flex: 1 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                font-size: 12px !important;
             }
             .mobile-brand-title {
                 font-size: 14px !important;
@@ -426,9 +480,9 @@
 
     <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/style.css?v=sih_2.1">
-    <link rel="stylesheet" href="/static/style.css?v=sih_2.1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=sih_2.1">
+    <link rel="stylesheet" href="/style.css?v=sih_2.3">
+    <link rel="stylesheet" href="/static/style.css?v=sih_2.3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=sih_2.3">
 </head>
 <body>
 
@@ -491,24 +545,56 @@
         <div class="main-wrapper">
             <!-- TOP BAR -->
             <header class="top-header">
-                <div class="header-left">
-                    <!-- Mobile Hamburger Menu Button -->
-                    <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" type="button" aria-label="Toggle Navigation">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                    </button>
+                <div class="header-main-row">
+                    <div class="header-left">
+                        <!-- Mobile Hamburger Menu Button -->
+                        <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" type="button" aria-label="Toggle Navigation">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
 
-                    <!-- Mobile Brand Identity -->
-                    <div class="mobile-brand">
-                        <div class="mobile-brand-logo">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v7.62z"/></svg>
+                        <!-- Mobile Brand Identity -->
+                        <div class="mobile-brand">
+                            <div class="mobile-brand-logo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.26l7-3.89v7.62z"/></svg>
+                            </div>
+                            <div class="mobile-brand-text">
+                                <span class="mobile-brand-title">SIH26106</span>
+                                <span class="mobile-brand-sub">AI</span>
+                            </div>
                         </div>
-                        <div class="mobile-brand-text">
-                            <span class="mobile-brand-title">SIH26106</span>
-                            <span class="mobile-brand-sub">AI</span>
+
+                        <h2 class="header-title">Dashboard</h2>
+
+                        <div class="active-case-indicator" id="header-subject-wrapper" title="Current Active Case Subject">
+                            <span class="active-case-label">Active:</span>
+                            <span id="header-subject">
+                                {% if result and result.forensics and result.forensics.subject and result.forensics.subject != 'Not Found' %}
+                                    {{ result.forensics.subject }}
+                                {% elif result and result.subject %}
+                                    {{ result.subject }}
+                                {% else %}
+                                    SIMULATED PHISHING TEST — NO ACTION REQUIRED
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
 
-                    <h2 class="header-title">Dashboard</h2>
+                    <div class="header-right">
+                        <button class="btn btn-primary" onclick="document.getElementById('modal-analyze').classList.add('active');" id="header-btn-analyze" title="Upload and analyze email file or paste raw RFC822 text">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span class="btn-text-full">Upload / Analyze</span>
+                            <span class="btn-text-mobile">Analyze</span>
+                        </button>
+                        <button class="btn btn-report btn-export-report" id="header-btn-export" title="Export comprehensive forensic audit report as PDF">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span class="btn-text-full">Export Report</span>
+                            <span class="btn-text-mobile">Export</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dedicated Preset Selector Bar -->
+                <div class="header-preset-bar">
                     <div class="preset-selector-wrapper">
                         <label>Demo Preset:</label>
                         <select id="preset-select" class="preset-select" aria-label="Select Demo Preset Case">
@@ -518,31 +604,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="active-case-indicator" id="header-subject-wrapper" title="Current Active Case Subject">
-                        <span class="active-case-label">Active:</span>
-                        <span id="header-subject">
-                            {% if result and result.forensics and result.forensics.subject and result.forensics.subject != 'Not Found' %}
-                                {{ result.forensics.subject }}
-                            {% elif result and result.subject %}
-                                {{ result.subject }}
-                            {% else %}
-                                SIMULATED PHISHING TEST — NO ACTION REQUIRED
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="header-right">
-                    <button class="btn btn-primary" onclick="document.getElementById('modal-analyze').classList.add('active');" id="header-btn-analyze" title="Upload and analyze email file or paste raw RFC822 text">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        <span class="btn-text-full">Upload / Analyze</span>
-                        <span class="btn-text-mobile">Analyze</span>
-                    </button>
-                    <button class="btn btn-report btn-export-report" id="header-btn-export" title="Export comprehensive forensic audit report as PDF">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        <span class="btn-text-full">Export Report</span>
-                        <span class="btn-text-mobile">Export</span>
-                    </button>
                 </div>
             </header>
 
@@ -806,8 +867,9 @@
                                 <span>Relationship Graph</span>
                                 <span class="card-title-icon" title="Entity correlation map">ⓘ</span>
                             </div>
-                            <button class="btn btn-report btn-export-report" style="padding:6px 14px;font-size:12px;">
-                                Export Forensic Report
+                            <button class="btn btn-report btn-export-report" style="padding:6px 12px;font-size:12px;" title="Export forensic investigation report">
+                                <span class="btn-text-full">Export Forensic Report</span>
+                                <span class="btn-text-mobile">Export Report</span>
                             </button>
                         </div>
                         <div class="graph-canvas-container">
@@ -965,8 +1027,8 @@
     <script>
         window.INITIAL_RESULT = {{ result | tojson if result else 'null' }};
     </script>
-    <script src="/dashboard.js?v=sih_2.1"></script>
-    <script src="/static/dashboard.js?v=sih_2.1"></script>
-    <script src="{{ url_for('static', filename='dashboard.js') }}?v=sih_2.1"></script>
+    <script src="/dashboard.js?v=sih_2.3"></script>
+    <script src="/static/dashboard.js?v=sih_2.3"></script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}?v=sih_2.3"></script>
 </body>
 </html>

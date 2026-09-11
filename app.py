@@ -145,6 +145,8 @@ app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 SECRET_KEY_FALLBACK = "sih26106-forensics-production-secret-key-32bytes"
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # Maximum HTTP request size: 10 MB
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
