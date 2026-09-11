@@ -10,6 +10,17 @@ except ImportError:
 # Initialize Supabase client lazily
 _supabase_client = None
 _client_initialized = False
+_connection_test_cache = None
+_connection_test_time = 0
+CONNECTION_CACHE_TTL = 60  # seconds
+
+def clear_supabase_cache():
+    """Clear cached connection test status and client."""
+    global _connection_test_cache, _connection_test_time, _supabase_client, _client_initialized
+    _connection_test_cache = None
+    _connection_test_time = 0
+    _supabase_client = None
+    _client_initialized = False
 
 
 # Default project credentials
@@ -42,6 +53,9 @@ def get_supabase_client():
     if not is_supabase_configured():
         return None
 
+    if _supabase_client is not None and _client_initialized:
+        return _supabase_client
+
     try:
         from supabase import create_client, Client
         _supabase_client = create_client(url, key)
@@ -52,21 +66,37 @@ def get_supabase_client():
         return None
 
 
-def test_connection():
-    """Test connecting to Supabase and return (success: bool, message: str)."""
+def test_connection(force=False):
+    """Test connecting to Supabase and return (success: bool, message: str) with 60s TTL cache."""
+    global _connection_test_cache, _connection_test_time
+    import time
+    now = time.time()
+    if not force and _connection_test_cache is not None and (now - _connection_test_time) < CONNECTION_CACHE_TTL:
+        return _connection_test_cache
+
     client = get_supabase_client()
     if not client:
-        return False, "Supabase credentials are not configured or invalid."
+        res = (False, "Supabase credentials are not configured or invalid.")
+        _connection_test_cache = res
+        _connection_test_time = now
+        return res
 
     try:
         # Simple read check on platform_settings or investigations
-        res = client.table("investigations").select("case_id").limit(1).execute()
-        return True, "Successfully connected to Supabase PostgreSQL database!"
+        res_data = client.table("investigations").select("case_id").limit(1).execute()
+        res = (True, "Successfully connected to Supabase PostgreSQL database!")
+        _connection_test_cache = res
+        _connection_test_time = now
+        return res
     except Exception as e:
         err_msg = str(e)
         if "relation" in err_msg and "does not exist" in err_msg:
-            return False, "Connected to Supabase, but tables are missing. Please run supabase_schema.sql in the Supabase SQL Editor."
-        return False, f"Supabase connection failed: {err_msg}"
+            res = (False, "Connected to Supabase, but tables are missing. Please run supabase_schema.sql in the Supabase SQL Editor.")
+        else:
+            res = (False, f"Supabase connection failed: {err_msg}")
+        _connection_test_cache = res
+        _connection_test_time = now
+        return res
 
 
 def save_investigation_supabase(case_dict):

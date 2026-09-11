@@ -1,8 +1,28 @@
 {
   "version": 2,
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(css|js|png|jpg|svg|ico|woff2)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!static/|public/|.*\\.(?:css|js|png|jpg|svg|ico|woff2)$).*)",
       "destination": "/api/index.py?__orig_path=/$1"
     }
   ]

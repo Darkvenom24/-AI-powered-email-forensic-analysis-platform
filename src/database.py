@@ -23,6 +23,17 @@ except ImportError:
 
 import os
 import tempfile
+import time
+
+_stats_cache = None
+_stats_cache_time = 0
+STATS_CACHE_TTL = 60  # seconds
+
+def clear_stats_cache():
+    """Invalidate in-memory cached stats."""
+    global _stats_cache, _stats_cache_time
+    _stats_cache = None
+    _stats_cache_time = 0
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -169,6 +180,7 @@ def save_investigation(result, sender="", receiver="", subject=""):
         except Exception as e:
             print(f"Notice: Saved to SQLite, but Supabase sync failed: {e}")
 
+    clear_stats_cache()
     return case_id
 
 
@@ -263,56 +275,69 @@ def delete_investigation(case_id):
     deleted = cursor.rowcount
     connection.commit()
     connection.close()
+    if deleted > 0:
+        clear_stats_cache()
     return deleted > 0
 
 
-def get_investigation_stats():
-    """Return live dashboard statistics from Supabase or SQLite."""
+def get_investigation_stats(force=False):
+    """Return live dashboard statistics from Supabase or SQLite with in-memory TTL caching."""
+    global _stats_cache, _stats_cache_time
+    now = time.time()
+    if not force and _stats_cache is not None and (now - _stats_cache_time) < STATS_CACHE_TTL:
+        return _stats_cache
+
+    stats = None
     if is_supabase_configured():
         try:
             cloud_stats = get_investigation_stats_supabase()
             if cloud_stats and cloud_stats.get("total", 0) > 0:
-                return cloud_stats
+                stats = cloud_stats
         except Exception as e:
             print(f"Supabase stats error: {e}")
 
-    initialize_database()
+    if stats is None:
+        initialize_database()
 
-    connection = get_connection()
-    cursor = connection.cursor()
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT
-            COUNT(*) AS total,
-            SUM(CASE WHEN UPPER(TRIM(prediction)) = 'PHISHING'
-                THEN 1 ELSE 0 END) AS phishing,
-            SUM(CASE WHEN UPPER(TRIM(prediction)) = 'SPAM'
-                THEN 1 ELSE 0 END) AS spam,
-            SUM(CASE WHEN UPPER(TRIM(prediction)) = 'SAFE'
-                THEN 1 ELSE 0 END) AS safe,
-            SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'HIGH RISK'
-                THEN 1 ELSE 0 END) AS high_risk,
-            SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'MEDIUM RISK'
-                THEN 1 ELSE 0 END) AS medium_risk,
-            SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'LOW RISK'
-                THEN 1 ELSE 0 END) AS low_risk,
-            COALESCE(AVG(risk_score), 0) AS average_risk
-        FROM investigations
-    """)
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN UPPER(TRIM(prediction)) = 'PHISHING'
+                    THEN 1 ELSE 0 END) AS phishing,
+                SUM(CASE WHEN UPPER(TRIM(prediction)) = 'SPAM'
+                    THEN 1 ELSE 0 END) AS spam,
+                SUM(CASE WHEN UPPER(TRIM(prediction)) = 'SAFE'
+                    THEN 1 ELSE 0 END) AS safe,
+                SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'HIGH RISK'
+                    THEN 1 ELSE 0 END) AS high_risk,
+                SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'MEDIUM RISK'
+                    THEN 1 ELSE 0 END) AS medium_risk,
+                SUM(CASE WHEN UPPER(TRIM(threat_level)) = 'LOW RISK'
+                    THEN 1 ELSE 0 END) AS low_risk,
+                COALESCE(AVG(risk_score), 0) AS average_risk
+            FROM investigations
+        """)
 
-    row = cursor.fetchone()
-    connection.close()
+        row = cursor.fetchone()
+        connection.close()
 
-    return {
-        "total": row["total"] or 0,
-        "phishing": row["phishing"] or 0,
-        "spam": row["spam"] or 0,
-        "safe": row["safe"] or 0,
-        "high_risk": row["high_risk"] or 0,
-        "medium_risk": row["medium_risk"] or 0,
-        "low_risk": row["low_risk"] or 0,
-        "average_risk": round(row["average_risk"] or 0, 1)
-    }
+        stats = {
+            "total": row["total"] or 0,
+            "phishing": row["phishing"] or 0,
+            "spam": row["spam"] or 0,
+            "safe": row["safe"] or 0,
+            "high_risk": row["high_risk"] or 0,
+            "medium_risk": row["medium_risk"] or 0,
+            "low_risk": row["low_risk"] or 0,
+            "average_risk": round(row["average_risk"] or 0, 1)
+        }
+
+    _stats_cache = stats
+    _stats_cache_time = now
+    return stats
 
 
 def sync_sqlite_to_supabase():

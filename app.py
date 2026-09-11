@@ -21,6 +21,8 @@ try:
 except ImportError:
     pass
 
+import gzip
+import threading
 from src.url_analyzer import extract_urls, analyze_url
 from src.forensics import (
     parse_email,
@@ -29,7 +31,6 @@ from src.forensics import (
     extract_header_ips
 )
 from src.geolocation import get_ip_location
-from src.pdf_report import generate_pdf_report
 from src.ioc_extractor import extract_iocs
 from src.attachment_analyzer import analyze_email_attachments
 from src.forensic_timeline import build_forensic_timeline
@@ -70,10 +71,28 @@ if has_cors:
         pass
 
 @app.after_request
-def add_cors_headers(response):
+def add_cors_and_compression_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+
+    # Lightweight Gzip compression for text/html, css, js, json over 1024 bytes
+    try:
+        accept_encoding = request.headers.get("Accept-Encoding", "")
+        if "gzip" in accept_encoding.lower() and response.status_code == 200:
+            content_type = response.headers.get("Content-Type", "")
+            if any(t in content_type for t in ["text/", "application/json", "application/javascript"]):
+                if not response.headers.get("Content-Encoding"):
+                    response.direct_passthrough = False
+                    data = response.get_data()
+                    if len(data) > 1024:
+                        compressed = gzip.compress(data, compresslevel=6)
+                        response.set_data(compressed)
+                        response.headers["Content-Encoding"] = "gzip"
+                        response.headers["Content-Length"] = len(compressed)
+    except Exception:
+        pass
+
     return response
 
 @app.before_request
@@ -91,7 +110,9 @@ def serve_static(filename):
         fdir = os.path.join(BASE_DIR, folder)
         target = os.path.join(fdir, filename)
         if os.path.exists(target):
-            return send_from_directory(fdir, filename)
+            resp = send_from_directory(fdir, filename, max_age=86400)
+            resp.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+            return resp
     return jsonify({"error": f"Static file {filename} not found"}), 404
 
 @app.route("/style.css")
@@ -99,7 +120,9 @@ def serve_root_style():
     for folder in ["public", "static", "public/static"]:
         fpath = os.path.join(BASE_DIR, folder, "style.css")
         if os.path.exists(fpath):
-            return send_file(fpath, mimetype="text/css")
+            resp = send_file(fpath, mimetype="text/css", max_age=86400)
+            resp.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+            return resp
     return jsonify({"error": "style.css not found"}), 404
 
 @app.route("/dashboard.js")
@@ -107,7 +130,9 @@ def serve_root_js():
     for folder in ["public", "static", "public/static"]:
         fpath = os.path.join(BASE_DIR, folder, "dashboard.js")
         if os.path.exists(fpath):
-            return send_file(fpath, mimetype="application/javascript")
+            resp = send_file(fpath, mimetype="application/javascript", max_age=86400)
+            resp.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+            return resp
     return jsonify({"error": "dashboard.js not found"}), 404
 
 import urllib.parse
@@ -145,28 +170,39 @@ app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 SECRET_KEY_FALLBACK = "sih26106-forensics-production-secret-key-32bytes"
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or SECRET_KEY_FALLBACK
-app.config["TEMPLATES_AUTO_RELOAD"] = True
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["TEMPLATES_AUTO_RELOAD"] = False
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 86400
 
 # Maximum HTTP request size: 10 MB
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 # ============================================================
-# LOAD ML MODEL
+# LAZY LOAD ML MODEL (NON-BLOCKING ON STARTUP)
 # ============================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "email_threat_model.pkl")
 model = None
+_model_lock = threading.Lock()
 
-try:
-    if os.path.exists(MODEL_PATH):
-        model = joblib.load(MODEL_PATH)
-        print("ML model loaded successfully!")
-    else:
-        print(f"Warning: Model file {MODEL_PATH} not found.")
-except Exception as e:
-    print(f"WARNING: Failed to load ML model: {e}")
+def get_model():
+    """Lazily load the ML threat classification model, avoiding startup blocking."""
+    global model
+    if model is not None:
+        return model
+    with _model_lock:
+        if model is not None:
+            return model
+        if joblib is not None and os.path.exists(MODEL_PATH):
+            try:
+                model = joblib.load(MODEL_PATH)
+                print("ML model loaded successfully!")
+            except Exception as e:
+                print(f"WARNING: Failed to load ML model: {e}")
+        return model
+
+# Warm up model in background daemon thread after startup without blocking initial requests
+threading.Thread(target=get_model, daemon=True, name="ML-Model-Preloader").start()
 
 # ============================================================
 # LOAD ML MODEL PERFORMANCE METRICS
@@ -179,9 +215,8 @@ try:
     if os.path.exists(METRICS_PATH):
         with open(METRICS_PATH, "r", encoding="utf-8") as f:
             model_metrics = json.load(f)
-        print("Model metrics loaded successfully!")
 except Exception as e:
-    print(f"Failed to load model metrics: {e}")
+    pass
 
 MAX_EMAIL_FILE_SIZE = 10 * 1024 * 1024
 
@@ -307,16 +342,17 @@ def analyze_email(
     confidence = 80.0
     phishing_prob = 0.15
 
-    if model is not None:
+    active_model = get_model()
+    if active_model is not None:
         try:
-            pred_raw = model.predict([email_text])[0]
-            probabilities = model.predict_proba([email_text])[0]
+            pred_raw = active_model.predict([email_text])[0]
+            probabilities = active_model.predict_proba([email_text])[0]
             prediction = str(pred_raw).upper()
             confidence = round(max(probabilities) * 100, 2)
-            
+
             # Map classes to phishing probability
-            if hasattr(model, "classes_"):
-                classes = [str(c).lower() for c in model.classes_]
+            if hasattr(active_model, "classes_"):
+                classes = [str(c).lower() for c in active_model.classes_]
                 if "phishing" in classes:
                     idx = classes.index("phishing")
                     phishing_prob = round(float(probabilities[idx]), 3)
@@ -795,7 +831,12 @@ def index():
         except Exception as e:
             error = f"Analysis failed: {str(e)}"
 
-    stats = get_investigation_stats()
+    # Fast cached or fallback stats to eliminate blocking remote database roundtrips on initial page render
+    from src.database import _stats_cache
+    stats = _stats_cache or {
+        "total": 0, "phishing": 0, "spam": 0, "safe": 0,
+        "high_risk": 0, "medium_risk": 0, "low_risk": 0, "average_risk": 0.0
+    }
     presets = get_all_presets()
     supabase_active = is_supabase_configured()
 
@@ -1092,6 +1133,7 @@ def api_export_report():
         reports_dir = os.path.join(tempfile.gettempdir(), "reports") if os.environ.get("VERCEL") else "reports"
         os.makedirs(reports_dir, exist_ok=True)
         pdf_path = os.path.join(reports_dir, "email_forensic_report.pdf")
+        from src.pdf_report import generate_pdf_report
         generate_pdf_report(result, pdf_path)
 
         return send_file(
@@ -1137,6 +1179,7 @@ def generate_report():
         reports_dir = os.path.join(tempfile.gettempdir(), "reports") if os.environ.get("VERCEL") else "reports"
         os.makedirs(reports_dir, exist_ok=True)
         pdf_path = os.path.join(reports_dir, "email_forensic_report.pdf")
+        from src.pdf_report import generate_pdf_report
         generate_pdf_report(result, pdf_path)
         return send_file(
             pdf_path,

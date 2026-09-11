@@ -662,10 +662,8 @@
     </style>
 
     <!-- CSS Dependencies -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/style.css?v=sih_2.4">
-    <link rel="stylesheet" href="/static/style.css?v=sih_2.4">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=sih_2.4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=sih_3.0">
 </head>
 <body>
 
@@ -1240,13 +1238,11 @@
         <p style="margin-top:14px;font-size:14px;font-weight:600;color:var(--accent-cyan);">Running AI Analysis & Forensic Pipeline...</p>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Scripts (Non-blocking, fast local bundle) -->
+    <script src="{{ url_for('static', filename='vendor/leaflet.js') }}" defer></script>
     <script>
         window.INITIAL_RESULT = {{ result | tojson if result else 'null' }};
     </script>
-    <script src="/dashboard.js?v=sih_2.4"></script>
-    <script src="/static/dashboard.js?v=sih_2.4"></script>
-    <script src="{{ url_for('static', filename='dashboard.js') }}?v=sih_2.4"></script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}?v=sih_3.0" defer></script>
 </body>
 </html>

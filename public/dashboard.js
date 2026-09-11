@@ -2,17 +2,33 @@
 // SIH26106: Cyber SOC Analyst Dashboard Controller
 // ============================================================
 
-if (!window.__SIH_DASHBOARD_INITIALIZED__) {
-    window.__SIH_DASHBOARD_INITIALIZED__ = true;
-    document.addEventListener('DOMContentLoaded', () => {
-        initLeafletMap();
-        initGauge();
-        initWaveform();
-        initRelationshipGraph();
-        setupEventListeners();
+function bootDashboard() {
+    initLeafletMap();
+    initGauge();
+    initWaveform();
+    initRelationshipGraph();
+    setupEventListeners();
+
+    // Defer non-critical background status & stats to allow instantaneous initial UI paint
+    const runBackgroundTasks = () => {
         fetchStats();
         checkSupabaseStatus();
-    });
+    };
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(runBackgroundTasks);
+    } else {
+        setTimeout(runBackgroundTasks, 60);
+    }
+}
+
+if (!window.__SIH_DASHBOARD_INITIALIZED__) {
+    window.__SIH_DASHBOARD_INITIALIZED__ = true;
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootDashboard);
+    } else {
+        bootDashboard();
+    }
 }
 
 // Current active analysis state
